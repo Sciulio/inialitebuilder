@@ -1,30 +1,16 @@
 import path from 'path';
 import fs from 'fs';
 
-import lodash from 'lodash';
+import { _logError, _logInfo } from "../libs/debug";
 
-import { _log, _logError, _logWarn, _logInfo } from "../libs/debug";
-
-import pHbs from './parser/hbs/main';
-import pHtml from './parser/html/main';
-import pJson from './parser/json/main';
-import pLang from './parser/lang/main';
-import { tFileNaming, copyFile, persistFile, IoResxManager, fnMustBeCompiled, toFileNaming } from './resx';
+import { tFileNaming, copyFile, persistFile, IoResxManager } from './resx';
 import { tCompilerExport } from './parser/base';
 import { dynamolo } from '../libs/dynamolo';
 
 
 const parsersSet: { [ext: string]: tCompilerExport } = {};
 
-
 dynamolo<tCompilerExport>(path.join(__dirname, './parser/'), impCompiler => parsersSet[impCompiler.extension] = impCompiler);
-/*
-parsersSet[pHbs.extension] = pHbs;
-parsersSet[pHtml.extension] = pHtml;
-parsersSet[pJson.extension] = pJson;
-parsersSet[pLang.extension] = pLang;
-*/
-
 
 export function parseFN(fn: tFileNaming): void {
   if (!fn.src.ext) {

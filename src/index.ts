@@ -1,13 +1,11 @@
 import path from 'path';
-import fs from 'fs';
-
-import mkpath from 'mkpath';
 
 import { _log, _logSeparator, _logInfo } from "./libs/debug";
 import { getFilesRecusively } from "./libs/io";
 
 import { CompilerManager, parseFN, precompileFile, compileFile } from './compiler/main';
 import { toFileNamingSet, IoResxManager, persistFile } from './compiler/resx';
+
 
 type tConfig = {
   target: {
@@ -20,8 +18,8 @@ type tConfig = {
 }
 
 export function build() {
-  //(require as any).main.filename
   const config = require(path.join(process.cwd(), "inia-config.json")) as tConfig;
+
   _log("Configs:");
   _log(config);
   _logSeparator();

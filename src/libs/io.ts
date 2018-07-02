@@ -1,11 +1,6 @@
 import * as fs from 'fs';
 import * as path from "path";
 
-import * as _ from "lodash";
-
-//import { setValue } from './obj';
-//import { constants } from "../constants";
-
 
 export type tFileInfo = {
   name: string,
@@ -22,29 +17,6 @@ export type tDictionary = {
   [path: string]: string|tDictionary;
   //_relPath: string;
 };
-
-/* function fileInfo(id: string = '') {
-  return (fullPath: string) => {
-    const fullName = path.basename(fullPath);
-    //const relPath = path.relative(constants.game.path, fullPath);
-    const relPath = path.relative(constants.template.path, fullPath);
-    const outFullPath = path.join(constants.build.lotteries.path, id, relPath)
-    .split(path.sep)
-    .filter(seg => seg[0] != '_')
-    .join(path.sep);
-
-    return <tFileInfo>{
-      name: fullName.replace(/\.[^/.]+$/, ""),
-      path: path.dirname(fullPath),
-      fullName,
-      fullPath,
-      ext: path.extname(fullPath),
-      relPath,
-      outPath: path.dirname(outFullPath),
-      outFullPath
-    };
-  }
-}*/
 
 export function getFilesRecusively(recursive: boolean, ...paths: string[]): string[];
 export function getFilesRecusively(...paths: string[]): string[];

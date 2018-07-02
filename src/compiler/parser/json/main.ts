@@ -1,9 +1,7 @@
 import fs from 'fs';
 
-import lodash from 'lodash';
-
 import { _logInfo } from "../../../libs/debug";
-import { tFileNaming, IoResxManager } from '../../resx';
+import { tFileNaming } from '../../resx';
 import { NoOp, tCompilerExport } from '../../parser/base';
 
 
