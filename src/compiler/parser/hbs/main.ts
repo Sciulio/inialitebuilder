@@ -1,4 +1,5 @@
 import fs from 'fs';
+import path from 'path';
 
 import { _logInfo, _logWarn } from '../../../libs/debug';
 
@@ -8,7 +9,7 @@ import handlebars from "handlebars";
 import './helpers/main';
 import { TemplateDelegate } from 'handlebars';
 import { tFileNaming, toRootRelPath, IoResxManager } from '../../resx';
-import { tCompilerExport } from '../../parser/base';
+import { tCompilerExport, tCompileType } from '../../parser/base';
 import { compileFile } from '../../main';
 
 
@@ -57,6 +58,12 @@ function parseToAbsPath(isLayout: boolean, fn: tFileNaming, content: string): st
   return content;
 }
 
+function preparse(sourceFilePath: string): tCompileType {
+  return {
+    isPartial: path.basename(sourceFilePath)[0] == '_',
+    type: "compilable"
+  };
+};
 function parse(fn: tFileNaming) {
   _logInfo("\tParsing HBS"); //, fn.src.fullPath);
 
@@ -168,7 +175,8 @@ function compile(fn: tFileNaming) {
 
 export default {
   extension: "hbs",
-  persist: true,
+  //persist: true,
+  preparse,
   parse,
   precompile,
   compile

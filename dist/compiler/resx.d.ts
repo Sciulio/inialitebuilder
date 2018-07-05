@@ -1,12 +1,16 @@
+import { tCompileType } from './parser/base';
 export declare type tFileInfo = {
     fileName: string;
     ext: string;
     path: string;
     fullPath: string;
     fullPathNoExt: string;
+    root: string;
 };
 export declare type tFileNaming = {
     fileName: string;
+    relPath: string;
+    cType: tCompileType;
     stats: {
         needsBuild: boolean;
         version: number;
@@ -18,9 +22,8 @@ export declare type tFileNaming = {
         url: string;
     };
 };
-export declare function toFileNaming(src_fullPath: string, targetPath: string, outputPath: string): tFileNaming;
-export declare function toFileNamingSet(sourceFileSet: string[], targetPath: string, outputPath: string): tFileNaming[];
-export declare function fnMustBeCompiled(out_fullPath: string, src_fullPath: string, isPartial: boolean): boolean;
+export declare function toFileNaming(src_fullPath: string, targetPath: string, outputPath: string, cType: tCompileType): tFileNaming;
+export declare function fnMustBeCompiled(out_fullPath: string, src_fullPath: string, ctype: tCompileType): boolean | null;
 export declare function persistFile(fn: tFileNaming, content: string): void;
 export declare function copyFile(fn: tFileNaming): void;
 export declare function toRootRelPath(fn: tFileNaming, relPath: string): string;

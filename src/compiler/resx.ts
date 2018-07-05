@@ -5,6 +5,7 @@ import mkpath from 'mkpath';
 
 import { _logInfo, _logError, _log } from '../libs/debug';
 import { CompilerManager } from './main';
+import { tCompileType } from './parser/base';
 
 
 export type tFileInfo = {
@@ -14,9 +15,12 @@ export type tFileInfo = {
   fullPath: string;
   fullPathNoExt: string;
   //lastChangedOn: number;
+  root: string;
 }
 export type tFileNaming = {
   fileName: string;
+  relPath: string;
+  cType: tCompileType;
   stats: {
     needsBuild: boolean;
     version: number;
@@ -35,13 +39,15 @@ const converter: {[ext: string]: string} = {
 }
 
 
-export function toFileNaming(src_fullPath: string, targetPath: string, outputPath: string): tFileNaming {
+export function toFileNaming(src_fullPath: string, targetPath: string, outputPath: string, cType: tCompileType): tFileNaming {
   src_fullPath = path.normalize(src_fullPath);
 
   const srcFileName = path.basename(src_fullPath);
   const fileName = srcFileName.substring(0, srcFileName.indexOf("."));
   const srcPath = path.dirname(src_fullPath);
   const srcExt = path.extname(srcFileName);
+
+  const relPath = path.relative(targetPath, src_fullPath);
 
   const outFileName = srcExt in converter ?
     srcFileName.replace(srcExt, converter[srcExt]) :
@@ -54,17 +60,20 @@ export function toFileNaming(src_fullPath: string, targetPath: string, outputPat
   const out_fullPath = path.join(outPath, outFileName);
   const out_fullPathNoExt = path.join(outPath, fileName);
 
-  const isPartial = fileName[0] == "_";
-
-  const needsBuild = fnMustBeCompiled(out_fullPath, src_fullPath, isPartial);
+  const needsBuildAndVersion = fnMustBeCompiled(out_fullPath, src_fullPath, cType);
+  const needsBuild = !!needsBuildAndVersion || needsBuildAndVersion == null;
+  const needsVersion = !!needsBuildAndVersion;
+  const fileStats = CompilerManager.instance.updateFileVersion(targetPath, relPath, needsVersion);
 
   _log(src_fullPath, targetPath, outputPath, outPath)
 
   const tfnRes: tFileNaming = {
     fileName,
+    relPath,
+    cType,
     stats: {
       needsBuild,
-      version: (CompilerManager.instance.stats.previous.files[src_fullPath] || 0) + (needsBuild ? 1 : 0)
+      version: fileStats.version
     },
     src: {
       fileName: srcFileName,
@@ -72,16 +81,18 @@ export function toFileNaming(src_fullPath: string, targetPath: string, outputPat
       path: srcPath,
       fullPath: src_fullPath,
       fullPathNoExt: path.join(srcPath, fileName),
+      root: targetPath
     },
     out: {
       fileName: outFileName,
       ext: path.extname(outFileName),
       path: outPath,
       fullPath: out_fullPath,
-      fullPathNoExt: out_fullPathNoExt
+      fullPathNoExt: out_fullPathNoExt,
+      root: outputPath
     },
     www: {
-      isPartial,
+      isPartial: cType.isPartial,
       url: "/" + encodeURI(path.relative(outPath, out_fullPathNoExt))
     }
   };
@@ -91,22 +102,13 @@ export function toFileNaming(src_fullPath: string, targetPath: string, outputPat
   return tfnRes;
 }
 
-export function toFileNamingSet(sourceFileSet: string[], targetPath: string, outputPath: string) {
-  _logInfo("ToNaming FileSet -----------------------------------------------------");
-
-  return sourceFileSet
-  .map(sourceFilePath => toFileNaming(sourceFilePath, targetPath, outputPath));
-}
-
-//export function fnMustBeCompiled(fn: tFileNaming) {
-export function fnMustBeCompiled(out_fullPath: string, src_fullPath: string, isPartial: boolean) {
+export function fnMustBeCompiled(out_fullPath: string, src_fullPath: string, ctype: tCompileType): boolean|null {
   //const outExists = fs.existsSync(fn.out.fullPath);
   const outExists = fs.existsSync(out_fullPath);
 
-  //if (!fn.www.isPartial && !outExists) {
-  if (!isPartial && !outExists) {
+  /*if (!ctype.isPartial && !outExists) {
     return true;
-  }
+  }*/
 
   //const srcStats = fs.statSync(fn.src.fullPath);
   const srcStats = fs.statSync(src_fullPath);
@@ -121,6 +123,10 @@ export function fnMustBeCompiled(out_fullPath: string, src_fullPath: string, isP
     outLastEditTime = CompilerManager.instance.stats.previous.finished;
   }
 
+  if (ctype.type == "build-resx") {
+    // needs build but new version only if edited, otherwise no new version
+    return srcLastEditTime > outLastEditTime || null;
+  }
   return srcLastEditTime > outLastEditTime;
 }
 

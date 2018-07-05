@@ -3,8 +3,8 @@ import fs from 'fs';
 
 import { _logError, _logInfo } from "../libs/debug";
 
-import { tFileNaming, copyFile, persistFile, IoResxManager } from './resx';
-import { tCompilerExport } from './parser/base';
+import { tFileNaming, IoResxManager, toFileNaming } from './resx';
+import { tCompilerExport, tCompileType } from './parser/base';
 import { dynamolo } from '../libs/dynamolo';
 
 
@@ -12,17 +12,39 @@ const parsersSet: { [ext: string]: tCompilerExport } = {};
 
 dynamolo<tCompilerExport>(path.join(__dirname, './parser/'), impCompiler => parsersSet[impCompiler.extension] = impCompiler);
 
-export function parseFN(fn: tFileNaming): void {
+
+/*
+TODO
+function getParserSet(ext: string) {
+  if (ext in parsersSet) {
+    return parsersSet[ext];
+  }
+}
+*/
+
+export function preparseFile(sourceFilePath: string, targetPath: string, outputPath: string) {
+  const ext = path.extname(sourceFilePath).substring(1);
+  let ctype: tCompileType = {
+    isPartial: false,
+    type: "site-resx" //TODO: set default (images etc...)
+  };
+
+  if (ext in parsersSet) {
+    ctype = parsersSet[ext].preparse(sourceFilePath);
+  }
+
+  return toFileNaming(sourceFilePath, targetPath, outputPath, ctype);
+}
+export function parseFile(fn: tFileNaming): void {
   if (!fn.src.ext) {
     _logError("File without ext", fn.src.fullPath);
     return;
   }
+  IoResxManager.instance.add(fn);
 
   _logInfo(` PARSING: "${fn.src.fullPath}"`);
 
   const ext = fn.src.ext.substring(1);
-
-  IoResxManager.instance.add(fn);
 
   if (ext in parsersSet) {
     parsersSet[ext].parse(fn);
@@ -75,7 +97,7 @@ export function compileFile(fn: tFileNaming, forceCompile: boolean = false) {
 
   if (!forceCompile && !fnCtxMustBeCompiled(fn)) {
     _logInfo("\t\tSkipped because existing not outdated!");
-    return false;
+    return null;
   }
 
   const ext = fn.src.ext.substring(1);
@@ -85,31 +107,32 @@ export function compileFile(fn: tFileNaming, forceCompile: boolean = false) {
     const parser = parsersSet[ext];
     content = parser.compile(fn);
 
-    if (parser.persist) {
+    /*if (parser.persist) {
       persistFile(fn, content);
     }
   } else {
-    copyFile(fn);
+    copyFile(fn);*/
   }
 
   return content;
 }
 
 
+export type tCompilationStatsItemSiteItem = {
+  version: number,
+  compiledOnLastBuild?: boolean
+};
+export type tCompilationStatsItemSite = {[relPath: string]: tCompilationStatsItemSiteItem};
+export type tCompilationStatsItem = {
+  started: number;
+  finished: number;
+  build: number;
+  sites: {[siteRoot: string]: tCompilationStatsItemSite};
+};
 export type tCompilationStats = {
-  previous: {
-    started: number;
-    finished: number;
-    build: number;
-    files: {[srcFullPath: string]: number};
-  };
-  current: {
-    started: number;
-    finished: number;
-    build: number;
-    files: {[srcFullPath: string]: number};
-  };
-}
+  previous: tCompilationStatsItem;
+  current: tCompilationStatsItem;
+};
 
 export class CompilerManager {
   static readonly _instance: CompilerManager = new CompilerManager();
@@ -121,6 +144,28 @@ export class CompilerManager {
   private _stats?: tCompilationStats;
   get stats(): tCompilationStats {
     return this._stats as any;
+  }
+
+  updateFileVersion(srcRoot: string, relPath: string, needsNewVersion: boolean): tCompilationStatsItemSiteItem {
+    const _stats = this._stats;
+    if (!_stats) {
+      throw Error("CICCIO");
+    }
+
+    const prev_siteStatItem: tCompilationStatsItemSite = _stats.previous.sites[srcRoot] || (_stats.previous.sites[srcRoot] = {});
+    const prev_siteStatItemItem: tCompilationStatsItemSiteItem = prev_siteStatItem[relPath] || (prev_siteStatItem[relPath] = {
+      version: 0
+    });
+    const prev_version = prev_siteStatItemItem.version || 0;
+    
+    const curr_siteStatItem: tCompilationStatsItemSite = _stats.current.sites[srcRoot] || (_stats.current.sites[srcRoot] = {});
+    if (relPath in curr_siteStatItem) {
+      return curr_siteStatItem[relPath];
+    }
+
+    return curr_siteStatItem[relPath] = {
+      version: prev_version + (needsNewVersion ? 1 : 0)
+    };
   }
 
   start(outputRoot: string) {
@@ -136,13 +181,13 @@ export class CompilerManager {
     _stats.previous.build = _stats.previous.build || 0;
     _stats.previous.started = _stats.previous.started || 0;
     _stats.previous.finished = _stats.previous.finished || 0;
-    _stats.previous.files = _stats.previous.files || {};
+    _stats.previous.sites = _stats.previous.sites || {};
 
     _stats.current = {
       build: _stats.previous.build + 1,
       started: Date.now(),
       finished: 0,
-      files: {}
+      sites: {}
     };
   }
 
@@ -152,10 +197,6 @@ export class CompilerManager {
     const _stats = this._stats as tCompilationStats;
 
     _stats.current.finished = Date.now();
-    _stats.current.files = {};
-
-    IoResxManager.instance.fnList()
-    .forEach(fn => _stats.current.files[fn.src.fullPath] = fn.stats.version);
 
     const content = JSON.stringify(_stats.current, null, 2);
     fs.writeFileSync(compilationStatsPath, content);

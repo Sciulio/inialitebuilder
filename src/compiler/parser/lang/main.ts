@@ -2,11 +2,17 @@ import fs from 'fs';
 
 import { _logInfo } from "../../../libs/debug";
 import { tFileNaming } from '../../resx';
-import { NoOp, tCompilerExport } from '../../parser/base';
+import { NoOp, tCompilerExport, tCompileType } from '../../parser/base';
 
 
 const parsedCache: {[srcFullPath: string]: any} = {};
 
+function preparse(sourceFilePath: string): tCompileType {
+  return {
+    isPartial: false,
+    type: "build-resx"
+  };
+};
 function parse(fn: tFileNaming) {
   _logInfo("\tParsing LANG"); //, fn.srcFullPath);
 
@@ -28,7 +34,8 @@ function compile(fn: tFileNaming, ctx: any) {
 
 export default {
   extension: "lang",
-  persist: false,
+  //persist: false,
+  preparse,
   parse,
   precompile: NoOp,
   compile

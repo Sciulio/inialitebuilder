@@ -4,6 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const fs_1 = __importDefault(require("fs"));
+const path_1 = __importDefault(require("path"));
 const debug_1 = require("../../../libs/debug");
 const lodash_1 = __importDefault(require("lodash"));
 const handlebars_1 = __importDefault(require("handlebars"));
@@ -45,6 +46,13 @@ function parseToAbsPath(isLayout, fn, content) {
     }
     return content;
 }
+function preparse(sourceFilePath) {
+    return {
+        isPartial: path_1.default.basename(sourceFilePath)[0] == '_',
+        type: "compilable"
+    };
+}
+;
 function parse(fn) {
     debug_1._logInfo("\tParsing HBS"); //, fn.src.fullPath);
     let content = fs_1.default.readFileSync(fn.src.fullPath).toString();
@@ -128,7 +136,8 @@ function compile(fn) {
 }
 exports.default = {
     extension: "hbs",
-    persist: true,
+    //persist: true,
+    preparse,
     parse,
     precompile,
     compile

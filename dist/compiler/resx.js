@@ -12,12 +12,13 @@ const converter = {
     ".hbs": ".html",
     ".md": ".html"
 };
-function toFileNaming(src_fullPath, targetPath, outputPath) {
+function toFileNaming(src_fullPath, targetPath, outputPath, cType) {
     src_fullPath = path_1.default.normalize(src_fullPath);
     const srcFileName = path_1.default.basename(src_fullPath);
     const fileName = srcFileName.substring(0, srcFileName.indexOf("."));
     const srcPath = path_1.default.dirname(src_fullPath);
     const srcExt = path_1.default.extname(srcFileName);
+    const relPath = path_1.default.relative(targetPath, src_fullPath);
     const outFileName = srcExt in converter ?
         srcFileName.replace(srcExt, converter[srcExt]) :
         srcFileName; //TODO
@@ -26,14 +27,18 @@ function toFileNaming(src_fullPath, targetPath, outputPath) {
     const outPath = path_1.default.join(outputPath, srcAbsolutePath);
     const out_fullPath = path_1.default.join(outPath, outFileName);
     const out_fullPathNoExt = path_1.default.join(outPath, fileName);
-    const isPartial = fileName[0] == "_";
-    const needsBuild = fnMustBeCompiled(out_fullPath, src_fullPath, isPartial);
+    const needsBuildAndVersion = fnMustBeCompiled(out_fullPath, src_fullPath, cType);
+    const needsBuild = !!needsBuildAndVersion || needsBuildAndVersion == null;
+    const needsVersion = !!needsBuildAndVersion;
+    const fileStats = main_1.CompilerManager.instance.updateFileVersion(targetPath, relPath, needsVersion);
     debug_1._log(src_fullPath, targetPath, outputPath, outPath);
     const tfnRes = {
         fileName,
+        relPath,
+        cType,
         stats: {
             needsBuild,
-            version: (main_1.CompilerManager.instance.stats.previous.files[src_fullPath] || 0) + (needsBuild ? 1 : 0)
+            version: fileStats.version
         },
         src: {
             fileName: srcFileName,
@@ -41,16 +46,18 @@ function toFileNaming(src_fullPath, targetPath, outputPath) {
             path: srcPath,
             fullPath: src_fullPath,
             fullPathNoExt: path_1.default.join(srcPath, fileName),
+            root: targetPath
         },
         out: {
             fileName: outFileName,
             ext: path_1.default.extname(outFileName),
             path: outPath,
             fullPath: out_fullPath,
-            fullPathNoExt: out_fullPathNoExt
+            fullPathNoExt: out_fullPathNoExt,
+            root: outputPath
         },
         www: {
-            isPartial,
+            isPartial: cType.isPartial,
             url: "/" + encodeURI(path_1.default.relative(outPath, out_fullPathNoExt))
         }
     };
@@ -58,20 +65,12 @@ function toFileNaming(src_fullPath, targetPath, outputPath) {
     return tfnRes;
 }
 exports.toFileNaming = toFileNaming;
-function toFileNamingSet(sourceFileSet, targetPath, outputPath) {
-    debug_1._logInfo("ToNaming FileSet -----------------------------------------------------");
-    return sourceFileSet
-        .map(sourceFilePath => toFileNaming(sourceFilePath, targetPath, outputPath));
-}
-exports.toFileNamingSet = toFileNamingSet;
-//export function fnMustBeCompiled(fn: tFileNaming) {
-function fnMustBeCompiled(out_fullPath, src_fullPath, isPartial) {
+function fnMustBeCompiled(out_fullPath, src_fullPath, ctype) {
     //const outExists = fs.existsSync(fn.out.fullPath);
     const outExists = fs_1.default.existsSync(out_fullPath);
-    //if (!fn.www.isPartial && !outExists) {
-    if (!isPartial && !outExists) {
-        return true;
-    }
+    /*if (!ctype.isPartial && !outExists) {
+      return true;
+    }*/
     //const srcStats = fs.statSync(fn.src.fullPath);
     const srcStats = fs_1.default.statSync(src_fullPath);
     const srcLastEditTime = srcStats.mtimeMs || srcStats.ctimeMs;
@@ -83,6 +82,10 @@ function fnMustBeCompiled(out_fullPath, src_fullPath, isPartial) {
     }
     else {
         outLastEditTime = main_1.CompilerManager.instance.stats.previous.finished;
+    }
+    if (ctype.type == "build-resx") {
+        // needs build but new version only if edited, otherwise no new version
+        return srcLastEditTime > outLastEditTime || null;
     }
     return srcLastEditTime > outLastEditTime;
 }

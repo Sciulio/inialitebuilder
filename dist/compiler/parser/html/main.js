@@ -4,9 +4,17 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const fs_1 = __importDefault(require("fs"));
+const path_1 = __importDefault(require("path"));
 const debug_1 = require("../../../libs/debug");
 const base_1 = require("../../parser/base");
 const parsedCache = {};
+function preparse(sourceFilePath) {
+    return {
+        isPartial: path_1.default.basename(sourceFilePath)[0] == '_',
+        type: "compilable"
+    };
+}
+;
 function parse(fn) {
     debug_1._logInfo("\tParsing  HTML"); //, fn.src.fullPath);
     if (fn.src.fullPath in parsedCache) {
@@ -21,7 +29,8 @@ function compile(fn) {
 }
 exports.default = {
     extension: "html",
-    persist: true,
+    //persist: true,
+    preparse,
     parse,
     precompile: base_1.NoOp,
     compile

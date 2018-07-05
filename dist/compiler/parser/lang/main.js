@@ -7,6 +7,13 @@ const fs_1 = __importDefault(require("fs"));
 const debug_1 = require("../../../libs/debug");
 const base_1 = require("../../parser/base");
 const parsedCache = {};
+function preparse(sourceFilePath) {
+    return {
+        isPartial: false,
+        type: "build-resx"
+    };
+}
+;
 function parse(fn) {
     debug_1._logInfo("\tParsing LANG"); //, fn.srcFullPath);
     if (fn.src.fullPath in parsedCache) {
@@ -22,7 +29,8 @@ function compile(fn, ctx) {
 }
 exports.default = {
     extension: "lang",
-    persist: false,
+    //persist: false,
+    preparse,
     parse,
     precompile: base_1.NoOp,
     compile

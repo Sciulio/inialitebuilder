@@ -1,12 +1,19 @@
 import fs from 'fs';
+import path from 'path';
 
 import { _logInfo } from "../../../libs/debug";
 import { tFileNaming } from '../../resx';
-import { tCompilerExport, NoOp } from '../../parser/base';
+import { tCompilerExport, NoOp, tCompileType } from '../../parser/base';
 
 
 const parsedCache: {[srcFullPath: string]: string} = {};
 
+function preparse(sourceFilePath: string): tCompileType {
+  return {
+    isPartial: path.basename(sourceFilePath)[0] == '_',
+    type: "compilable"
+  };
+};
 function parse(fn: tFileNaming) {
   _logInfo("\tParsing  HTML"); //, fn.src.fullPath);
 
@@ -26,7 +33,8 @@ function compile(fn: tFileNaming) {
 
 export default {
   extension: "html",
-  persist: true,
+  //persist: true,
+  preparse,
   parse,
   precompile: NoOp,
   compile
