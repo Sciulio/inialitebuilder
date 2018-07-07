@@ -4,7 +4,7 @@ export declare type tCompileType = {
     type: "build-resx" | "site-resx" | "compilable";
 };
 export declare type tCompilerExport = {
-    extension: string;
+    extension: string | string[];
     preparse: (sourceFilePath: string) => tCompileType;
     parse: (fn: tFileNaming) => void;
     precompile(fn: tFileNaming): void;

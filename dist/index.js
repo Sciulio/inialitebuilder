@@ -8,8 +8,9 @@ const debug_1 = require("./libs/debug");
 const io_1 = require("./libs/io");
 const main_1 = require("./compiler/main");
 const resx_1 = require("./compiler/resx");
+const config_1 = require("./libs/config");
 function start() {
-    const config = require(path_1.default.join(process.cwd(), "inia-config.json"));
+    const config = config_1.loadConfiguration();
     debug_1._log("Configs:");
     debug_1._log(config);
     debug_1._logSeparator();

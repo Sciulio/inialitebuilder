@@ -17,12 +17,14 @@
     "handlebars": "^4.0.11",
     "handlebars-layouts": "^3.1.4",
     "lodash": "^4.17.10",
-    "mkpath": "^1.0.0"
+    "mkpath": "^1.0.0",
+    "node-sass": "^4.9.1"
   },
   "devDependencies": {
-    "@types/node": "^10.3.2",
     "@types/handlebars": "^4.0.38",
     "@types/lodash": "^4.14.109",
-    "@types/mkpath": "^0.1.29"
+    "@types/mkpath": "^0.1.29",
+    "@types/node": "^10.3.2",
+    "@types/node-sass": "^3.10.32"
   }
 }

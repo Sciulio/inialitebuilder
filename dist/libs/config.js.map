@@ -1,0 +1,1 @@
+{"version":3,"file":"config.js","sourceRoot":"","sources":["../../src/libs/config.ts"],"names":[],"mappings":";;;;;AAAA,gDAAwB;AAkBxB,MAAM,cAAc,GAAG,kBAAkB,CAAC;AAE1C,IAAI,oBAAoB,GAAiB,IAAI,CAAC;AAE9C;IACE,OAAO,oBAAoB,IAAI,CAAC,oBAAoB,GAAG,OAAO,CAAC,cAAI,CAAC,IAAI,CAAC,OAAO,CAAC,GAAG,EAAE,EAAE,cAAc,CAAC,CAAY,CAAC,CAAC;AACvH,CAAC;AAFD,8CAEC"}

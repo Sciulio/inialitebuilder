@@ -9,7 +9,9 @@ const debug_1 = require("../libs/debug");
 const resx_1 = require("./resx");
 const dynamolo_1 = require("../libs/dynamolo");
 const parsersSet = {};
-dynamolo_1.dynamolo(path_1.default.join(__dirname, './parser/'), impCompiler => parsersSet[impCompiler.extension] = impCompiler);
+dynamolo_1.dynamolo(path_1.default.join(__dirname, './parser/'), impCompiler => Array.isArray(impCompiler.extension) ?
+    impCompiler.extension.forEach(ext => parsersSet[ext] = impCompiler) :
+    parsersSet[impCompiler.extension] = impCompiler);
 /*
 TODO
 function getParserSet(ext: string) {
@@ -86,11 +88,6 @@ function compileFile(fn, forceCompile = false) {
     if (ext in parsersSet) {
         const parser = parsersSet[ext];
         content = parser.compile(fn);
-        /*if (parser.persist) {
-          persistFile(fn, content);
-        }
-      } else {
-        copyFile(fn);*/
     }
     return content;
 }

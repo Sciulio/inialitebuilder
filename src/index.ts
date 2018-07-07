@@ -5,25 +5,11 @@ import { getFilesRecusively } from "./libs/io";
 
 import { CompilerManager, parseFile, precompileFile, compileFile, preparseFile } from './compiler/main';
 import { IoResxManager, persistFile, copyFile } from './compiler/resx';
+import { loadConfiguration, tConfig } from './libs/config';
 
-
-type tConfig = {
-  target: {
-    root: string,
-    sites: string[]
-  },
-  output: {
-    root: string
-  },
-  phases: {[phase: string]: {
-    root: string;
-    username?: string;
-    password?: string;
-  }}
-}
 
 function start() {
-  const config = require(path.join(process.cwd(), "inia-config.json")) as tConfig;
+  const config = loadConfiguration();
 
   _log("Configs:");
   _log(config);

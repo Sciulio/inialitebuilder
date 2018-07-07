@@ -33,9 +33,12 @@ export type tFileNaming = {
   };
 }
 
+//TODO: add this to compilers
 const converter: {[ext: string]: string} = {
   ".hbs": ".html",
-  ".md": ".html"
+  ".md": ".html",
+  ".sass": ".css",
+  ".scss": ".css"
 }
 
 
@@ -103,20 +106,13 @@ export function toFileNaming(src_fullPath: string, targetPath: string, outputPat
 }
 
 export function fnMustBeCompiled(out_fullPath: string, src_fullPath: string, ctype: tCompileType): boolean|null {
-  //const outExists = fs.existsSync(fn.out.fullPath);
   const outExists = fs.existsSync(out_fullPath);
-
-  /*if (!ctype.isPartial && !outExists) {
-    return true;
-  }*/
-
-  //const srcStats = fs.statSync(fn.src.fullPath);
+  
   const srcStats = fs.statSync(src_fullPath);
   const srcLastEditTime = srcStats.mtimeMs || srcStats.ctimeMs;
   let outLastEditTime: number = 0;
   
   if (outExists) {
-    //const outStats = fs.statSync(fn.out.fullPath);
     const outStats = fs.statSync(out_fullPath);
     outLastEditTime = outStats.mtimeMs || outStats.ctimeMs;
   } else {

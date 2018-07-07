@@ -7,7 +7,7 @@ export type tCompileType = {
   //persist: "persist" | "copy" | false;
 };
 export type tCompilerExport = {
-  extension: string;
+  extension: string|string[];
   //persist: boolean;
   preparse: (sourceFilePath: string) => tCompileType;
   parse: (fn: tFileNaming) => void;

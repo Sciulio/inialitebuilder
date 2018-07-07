@@ -8,9 +8,12 @@ const fs_1 = __importDefault(require("fs"));
 const mkpath_1 = __importDefault(require("mkpath"));
 const debug_1 = require("../libs/debug");
 const main_1 = require("./main");
+//TODO: add this to compilers
 const converter = {
     ".hbs": ".html",
-    ".md": ".html"
+    ".md": ".html",
+    ".sass": ".css",
+    ".scss": ".css"
 };
 function toFileNaming(src_fullPath, targetPath, outputPath, cType) {
     src_fullPath = path_1.default.normalize(src_fullPath);

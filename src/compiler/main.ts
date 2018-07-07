@@ -10,7 +10,12 @@ import { dynamolo } from '../libs/dynamolo';
 
 const parsersSet: { [ext: string]: tCompilerExport } = {};
 
-dynamolo<tCompilerExport>(path.join(__dirname, './parser/'), impCompiler => parsersSet[impCompiler.extension] = impCompiler);
+dynamolo<tCompilerExport>(
+  path.join(__dirname, './parser/'),
+  impCompiler => Array.isArray(impCompiler.extension) ?
+    impCompiler.extension.forEach(ext => parsersSet[ext] = impCompiler) :
+    parsersSet[impCompiler.extension] = impCompiler
+);
 
 
 /*
@@ -106,12 +111,6 @@ export function compileFile(fn: tFileNaming, forceCompile: boolean = false) {
   if (ext in parsersSet) {
     const parser = parsersSet[ext];
     content = parser.compile(fn);
-
-    /*if (parser.persist) {
-      persistFile(fn, content);
-    }
-  } else {
-    copyFile(fn);*/
   }
 
   return content;
