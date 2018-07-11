@@ -2,7 +2,7 @@ import fs from 'fs';
 
 import { _logInfo } from "../../../libs/debug";
 import { tFileNaming } from '../../resx';
-import { NoOp, tCompilerExport, tCompileType } from '../../parser/base';
+import { NoOp, tCompilerExport, tCompileType } from '../base';
 
 
 const parsedCache: {[srcFullPath: string]: any} = {};

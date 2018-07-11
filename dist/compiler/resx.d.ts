@@ -1,5 +1,5 @@
 import { tCompileType } from './parser/base';
-export declare type tFileInfo = {
+export declare type tFileNamingInfo = {
     fileName: string;
     ext: string;
     path: string;
@@ -8,41 +8,38 @@ export declare type tFileInfo = {
     root: string;
 };
 export declare type tFileNaming = {
+    siteName: string;
     fileName: string;
     relPath: string;
     cType: tCompileType;
     stats: {
         needsBuild: boolean;
+        needsNewVersion: boolean;
         version: number;
     };
-    src: tFileInfo;
-    out: tFileInfo;
+    relations: {
+        type: "layout" | "partial" | "build-resx";
+        fn: tFileNaming;
+    }[];
+    src: tFileNamingInfo;
+    out: tFileNamingInfo;
     www: {
         isPartial: boolean;
         url: string;
     };
 };
-export declare function toFileNaming(src_fullPath: string, targetPath: string, outputPath: string, cType: tCompileType): tFileNaming;
-export declare function fnMustBeCompiled(out_fullPath: string, src_fullPath: string, ctype: tCompileType): boolean | null;
-export declare function persistFile(fn: tFileNaming, content: string): void;
-export declare function copyFile(fn: tFileNaming): void;
+export declare function persistFile(fn: tFileNaming, content: string): Promise<void>;
+export declare function copyFile(fn: tFileNaming): Promise<void>;
 export declare function toRootRelPath(fn: tFileNaming, relPath: string): string;
-export declare type tIoResxItem = {
-    fn: tFileNaming;
-    layout?: string;
-    partials?: string[];
-};
 export declare class IoResxManager {
-    items: tIoResxItem[];
+    items: tFileNaming[];
     static readonly _instance: IoResxManager;
     static readonly instance: IoResxManager;
     private constructor();
-    add(fn: tFileNaming): void;
+    create(siteName: string, src_fullPath: string, targetPath: string, outputPath: string, cType: tCompileType): Promise<tFileNaming>;
+    add(fn: tFileNaming): tFileNaming;
     fnItem(filter?: (fn: tFileNaming) => boolean): tFileNaming;
     fnList(filter?: (fn: tFileNaming) => boolean): tFileNaming[];
     fnItemByExt(ext: string, filter?: (fn: tFileNaming) => boolean): tFileNaming;
     fnListByExt(ext: string, filter?: (fn: tFileNaming) => boolean): tFileNaming[];
-    getCtxByFn(fn: tFileNaming): tIoResxItem;
-    addLayoutTo(fn: tFileNaming, scrFullPath: string): void;
-    addPartialTo(fn: tFileNaming, scrFullPath: string): void;
 }

@@ -1,4 +1,5 @@
-import * as fs from 'fs';
+import fs from 'fs';
+import fse from 'fs-extra';
 import * as path from "path";
 
 
@@ -18,9 +19,9 @@ export type tDictionary = {
   //_relPath: string;
 };
 
-export function getFilesRecusively(recursive: boolean, ...paths: string[]): string[];
-export function getFilesRecusively(...paths: string[]): string[];
-export function getFilesRecusively(...args: any[]): string[] {
+export async function getFilesRecusively(recursive: boolean, ...paths: string[]): Promise<string[]>;
+export async function getFilesRecusively(...paths: string[]): Promise<string[]>;
+export async function getFilesRecusively(...args: any[]): Promise<string[]> {
   let recursive: boolean = true;
   let paths: string[] = args;
 
@@ -30,58 +31,19 @@ export function getFilesRecusively(...args: any[]): string[] {
   }
 
   const dir = path.join.apply(path, paths);
-  let res = fs.readdirSync(dir);
+  //let res = fs.readdirSync(dir);
+  let res = await fse.readdir(dir);
 
   if (recursive) {
-    res = res.reduce((files: string[], file: string) => {
+    res = await res
+    .reduce(async (p_files, file) => {
+      const files = await p_files;
       const name = path.join(dir, file);
-      const isDirectory = fs.statSync(name).isDirectory();
-      return isDirectory ? [...files, ...getFilesRecusively(name)] : [...files, name];
-    }, []);
+      //const isDirectory = fs.statSync(name).isDirectory();
+      const isDirectory = (await fse.stat(name)).isDirectory();
+      return isDirectory ? [...files, ...await getFilesRecusively(name)] : [...files, name];
+    }, Promise.resolve([] as string[]));
   }
 
   return res;
 }
-
-/*export function folderToContextData(dir: string) {
-  let res = {};
-
-  getFilesRecusively(dir)
-  .map(fileInfo())
-  .filter(_file => _file.ext == ".json")
-  .forEach(_file => {
-    const content = fs.readFileSync(_file.fullPath).toString();
-    const obj = JSON.parse(content);
-
-    let props = path.relative(dir, _file.fullPath).split(path.sep); //.join(".");
-    props.push(_file.name);
-    props = props.filter(prop => prop[0] != "_");
-
-    setValue(res, props, obj);
-  });
-
-  return res;
-}
-
-export function getFolderDictionary(_files: string[], rootPath = ""): tDictionary {
-  let fDict: tDictionary = { };
-
-  _files
-  .map(fileInfo())
-  .filter(_file => _file.fullName != "__wrap_.hbs")
-  .forEach(_file => {
-    let _fileSet = fDict;
-    const segmentsList = _file.fullPath.split(path.sep);
-
-    segmentsList
-    .forEach((seg, idx) => {
-      if (idx == segmentsList.length - 1) {
-        _fileSet[seg] = _file.fullPath;
-      } else {
-        _fileSet = (_fileSet[seg] || (_fileSet[seg] = { })) as tDictionary;
-      }
-    });
-  });
-  
-  return _.get(fDict, rootPath) as tDictionary;
-}*/

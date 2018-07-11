@@ -11,5 +11,5 @@ export declare type tFileInfo = {
 export declare type tDictionary = {
     [path: string]: string | tDictionary;
 };
-export declare function getFilesRecusively(recursive: boolean, ...paths: string[]): string[];
-export declare function getFilesRecusively(...paths: string[]): string[];
+export declare function getFilesRecusively(recursive: boolean, ...paths: string[]): Promise<string[]>;
+export declare function getFilesRecusively(...paths: string[]): Promise<string[]>;

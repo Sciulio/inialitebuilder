@@ -24,7 +24,7 @@ function parseToAbsPath(isLayout, fn, content) {
     //TODO: improve regex for '..."}}'
     if (isLayout) {
         extRegexp = /{{\s*#extend\s+"(.*?)"/ig;
-        convertContent = (rootRelPath) => '{{#extend "' + rootRelPath + '"';
+        convertContent = (rootRelPathNoExt) => '{{#extend "' + rootRelPathNoExt + '"';
     }
     else {
         extRegexp = /{{\s*>\s+"??(.*?)\s+"??/ig;
@@ -35,14 +35,13 @@ function parseToAbsPath(isLayout, fn, content) {
     while ((match = extRegexp.exec(content))) {
         const strip = match[0];
         const relPath = match[1].replace(/"/g, "");
-        const rootRelPath = resx_1.toRootRelPath(fn, relPath);
-        content = content.replace(strip, convertContent(rootRelPath));
-        if (isLayout) {
-            resx_1.IoResxManager.instance.addLayoutTo(fn, rootRelPath);
-        }
-        else {
-            resx_1.IoResxManager.instance.addPartialTo(fn, rootRelPath);
-        }
+        const rootRelPathNoExt = resx_1.toRootRelPath(fn, relPath);
+        const rootRelPath = rootRelPathNoExt + ".hbs";
+        content = content.replace(strip, convertContent(rootRelPathNoExt));
+        fn.relations.push({
+            type: isLayout ? "layout" : "partial",
+            fn: resx_1.IoResxManager.instance.fnItem(fn => fn.src.fullPath == rootRelPath)
+        });
     }
     return content;
 }
@@ -98,25 +97,24 @@ function mergeResxData(fn, ctx, mR) {
         ctx[mR.keyProp] = lodash_1.default.merge(ctx[mR.keyProp] || {}, cCtx);
     }
 }
-function prepareRelateResxDate(srcFullPathNoExt, ctx) {
+function prepareRelatedResxDate(srcFullPathNoExt, ctx) {
     const fnRelated = resx_1.IoResxManager.instance.fnItem(_fnItem => _fnItem.src.fullPathNoExt == srcFullPathNoExt);
     mergeResxData(fnRelated, ctx, mergeResx.json);
     mergeResxData(fnRelated, ctx, mergeResx.lang);
     ctx = prepareResxData(fnRelated, ctx);
 }
 function prepareResxData(fn, ctx = {}) {
-    const fnItem = resx_1.IoResxManager.instance.getCtxByFn(fn);
-    if (fnItem.layout) {
-        debug_1._logWarn("\t\t\textLayoutContext", fnItem.layout);
-        prepareRelateResxDate(fnItem.layout, ctx);
+    const fnRelLayout = fn.relations.filter(rel => rel.type == "layout")[0];
+    if (fnRelLayout) {
+        debug_1._logWarn("\t\t\textLayoutContext", fnRelLayout.fn.src.fullPath);
+        prepareRelatedResxDate(fnRelLayout.fn.src.fullPathNoExt, ctx);
     }
-    if (fnItem.partials) {
-        fnItem.partials
-            .forEach(partials => {
-            debug_1._logWarn("\t\t\textPartialContext", partials);
-            prepareRelateResxDate(partials, ctx);
-        });
-    }
+    fn.relations
+        .filter(fn => fn.type == "partial")
+        .forEach(fnRelPartial => {
+        debug_1._logWarn("\t\t\textPartialContext", fnRelPartial.fn.src.fullPath);
+        prepareRelatedResxDate(fnRelPartial.fn.src.fullPathNoExt, ctx);
+    });
     return ctx;
 }
 function compile(fn) {

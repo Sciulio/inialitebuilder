@@ -1,13 +1,22 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
+const fs_extra_1 = __importDefault(require("fs-extra"));
 const mkpath_1 = __importDefault(require("mkpath"));
+const path_1 = __importDefault(require("path"));
+const audit_1 = require("../libs/audit");
 const debug_1 = require("../libs/debug");
-const main_1 = require("./main");
 //TODO: add this to compilers
 const converter = {
     ".hbs": ".html",
@@ -15,94 +24,100 @@ const converter = {
     ".sass": ".css",
     ".scss": ".css"
 };
-function toFileNaming(src_fullPath, targetPath, outputPath, cType) {
-    src_fullPath = path_1.default.normalize(src_fullPath);
-    const srcFileName = path_1.default.basename(src_fullPath);
-    const fileName = srcFileName.substring(0, srcFileName.indexOf("."));
-    const srcPath = path_1.default.dirname(src_fullPath);
-    const srcExt = path_1.default.extname(srcFileName);
-    const relPath = path_1.default.relative(targetPath, src_fullPath);
-    const outFileName = srcExt in converter ?
-        srcFileName.replace(srcExt, converter[srcExt]) :
-        srcFileName; //TODO
-    //const outPath = path.join(config.output.path, srcPath);
-    const srcAbsolutePath = path_1.default.relative(targetPath, srcPath);
-    const outPath = path_1.default.join(outputPath, srcAbsolutePath);
-    const out_fullPath = path_1.default.join(outPath, outFileName);
-    const out_fullPathNoExt = path_1.default.join(outPath, fileName);
-    const needsBuildAndVersion = fnMustBeCompiled(out_fullPath, src_fullPath, cType);
-    const needsBuild = !!needsBuildAndVersion || needsBuildAndVersion == null;
-    const needsVersion = !!needsBuildAndVersion;
-    const fileStats = main_1.CompilerManager.instance.updateFileVersion(targetPath, relPath, needsVersion);
-    debug_1._log(src_fullPath, targetPath, outputPath, outPath);
-    const tfnRes = {
-        fileName,
-        relPath,
-        cType,
-        stats: {
-            needsBuild,
-            version: fileStats.version
-        },
-        src: {
-            fileName: srcFileName,
-            ext: srcExt,
-            path: srcPath,
-            fullPath: src_fullPath,
-            fullPathNoExt: path_1.default.join(srcPath, fileName),
-            root: targetPath
-        },
-        out: {
-            fileName: outFileName,
-            ext: path_1.default.extname(outFileName),
-            path: outPath,
-            fullPath: out_fullPath,
-            fullPathNoExt: out_fullPathNoExt,
-            root: outputPath
-        },
-        www: {
-            isPartial: cType.isPartial,
-            url: "/" + encodeURI(path_1.default.relative(outPath, out_fullPathNoExt))
+function toFileNaming(siteName, src_fullPath, targetPath, outputPath, cType) {
+    return __awaiter(this, void 0, void 0, function* () {
+        src_fullPath = path_1.default.normalize(src_fullPath);
+        const srcFileName = path_1.default.basename(src_fullPath);
+        const fileName = srcFileName.substring(0, srcFileName.indexOf("."));
+        const srcPath = path_1.default.dirname(src_fullPath);
+        const srcExt = path_1.default.extname(srcFileName);
+        const relPath = path_1.default.relative(targetPath, src_fullPath);
+        const outFileName = srcExt in converter ?
+            srcFileName.replace(srcExt, converter[srcExt]) :
+            srcFileName; //TODO
+        const srcAbsolutePath = path_1.default.relative(targetPath, srcPath);
+        const outPath = path_1.default.join(outputPath, srcAbsolutePath);
+        const out_fullPath = path_1.default.join(outPath, outFileName);
+        const out_fullPathNoExt = path_1.default.join(outPath, fileName);
+        const needsBuildAndVersion = (yield fnMustBeCompiled(siteName, out_fullPath, src_fullPath, cType));
+        const needsBuild = !!needsBuildAndVersion || needsBuildAndVersion == null;
+        const needsNewVersion = !!needsBuildAndVersion;
+        const fileAudit = yield audit_1.fileLastAudit(siteName, src_fullPath);
+        const version = fileAudit ? fileAudit.version + (needsNewVersion ? 1 : 0) : 0;
+        debug_1._log(src_fullPath, targetPath, outputPath, outPath);
+        const tfnRes = {
+            siteName,
+            fileName,
+            relPath,
+            cType,
+            stats: {
+                needsBuild,
+                needsNewVersion,
+                version
+            },
+            relations: [],
+            src: {
+                fileName: srcFileName,
+                ext: srcExt,
+                path: srcPath,
+                fullPath: src_fullPath,
+                fullPathNoExt: path_1.default.join(srcPath, fileName),
+                root: targetPath
+            },
+            out: {
+                fileName: outFileName,
+                ext: path_1.default.extname(outFileName),
+                path: outPath,
+                fullPath: out_fullPath,
+                fullPathNoExt: out_fullPathNoExt,
+                root: outputPath
+            },
+            www: {
+                isPartial: cType.isPartial,
+                url: "/" + encodeURI(path_1.default.relative(outPath, out_fullPathNoExt))
+            }
+        };
+        debug_1._log(tfnRes);
+        return tfnRes;
+    });
+}
+function fnMustBeCompiled(siteName, out_fullPath, src_fullPath, ctype) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const outExists = fs_1.default.existsSync(out_fullPath);
+        //const outExists = (await fse.ex.ensureFile(.exists(out_fullPath));
+        //const srcStats = fs.statSync(src_fullPath);
+        const srcStats = (yield fs_extra_1.default.stat(src_fullPath));
+        const srcLastEditTime = srcStats.mtimeMs || srcStats.ctimeMs;
+        let outLastEditTime = 0;
+        if (outExists) {
+            const outStats = (yield fs_extra_1.default.stat(out_fullPath));
+            outLastEditTime = outStats.mtimeMs || outStats.ctimeMs;
         }
-    };
-    debug_1._log(tfnRes);
-    return tfnRes;
+        else {
+            const lastFileAudit = yield audit_1.fileLastAudit(siteName, src_fullPath);
+            outLastEditTime = lastFileAudit ? lastFileAudit._on : 0;
+        }
+        if (ctype.type == "build-resx") {
+            // needs build but new version only if edited, otherwise no new version
+            return (srcLastEditTime > outLastEditTime) || null;
+        }
+        return srcLastEditTime > outLastEditTime;
+    });
 }
-exports.toFileNaming = toFileNaming;
-function fnMustBeCompiled(out_fullPath, src_fullPath, ctype) {
-    //const outExists = fs.existsSync(fn.out.fullPath);
-    const outExists = fs_1.default.existsSync(out_fullPath);
-    /*if (!ctype.isPartial && !outExists) {
-      return true;
-    }*/
-    //const srcStats = fs.statSync(fn.src.fullPath);
-    const srcStats = fs_1.default.statSync(src_fullPath);
-    const srcLastEditTime = srcStats.mtimeMs || srcStats.ctimeMs;
-    let outLastEditTime = 0;
-    if (outExists) {
-        //const outStats = fs.statSync(fn.out.fullPath);
-        const outStats = fs_1.default.statSync(out_fullPath);
-        outLastEditTime = outStats.mtimeMs || outStats.ctimeMs;
-    }
-    else {
-        outLastEditTime = main_1.CompilerManager.instance.stats.previous.finished;
-    }
-    if (ctype.type == "build-resx") {
-        // needs build but new version only if edited, otherwise no new version
-        return srcLastEditTime > outLastEditTime || null;
-    }
-    return srcLastEditTime > outLastEditTime;
-}
-exports.fnMustBeCompiled = fnMustBeCompiled;
 function persistFile(fn, content) {
-    debug_1._logInfo("\tPersisting:", fn.src.fullPath);
-    mkpath_1.default.sync(fn.out.path);
-    fs_1.default.writeFileSync(fn.out.fullPath, content);
+    return __awaiter(this, void 0, void 0, function* () {
+        debug_1._logInfo("\tPersisting:", fn.src.fullPath);
+        mkpath_1.default.sync(fn.out.path);
+        yield fs_extra_1.default.writeFile(fn.out.fullPath, content);
+    });
 }
 exports.persistFile = persistFile;
 function copyFile(fn) {
-    debug_1._logInfo("\tCopying:", fn.src.fullPath);
-    mkpath_1.default.sync(fn.out.path);
-    fs_1.default.copyFileSync(fn.src.fullPath, fn.out.fullPath);
+    return __awaiter(this, void 0, void 0, function* () {
+        debug_1._logInfo("\tCopying:", fn.src.fullPath);
+        mkpath_1.default.sync(fn.out.path);
+        yield fs_extra_1.default.copy(fn.src.fullPath, fn.out.fullPath);
+    });
 }
 exports.copyFile = copyFile;
 function toRootRelPath(fn, relPath) {
@@ -117,15 +132,20 @@ class IoResxManager {
     static get instance() {
         return IoResxManager._instance;
     }
+    create(siteName, src_fullPath, targetPath, outputPath, cType) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return this.add(yield toFileNaming(siteName, src_fullPath, targetPath, outputPath, cType));
+        });
+    }
     add(fn) {
-        this.items.push({ fn });
+        this.items.push(fn);
+        return fn;
     }
     fnItem(filter = () => true) {
         return this.fnList(filter)[0];
     }
     fnList(filter = () => true) {
         return this.items
-            .map(item => item.fn)
             .filter(filter);
     }
     fnItemByExt(ext, filter = () => true) {
@@ -136,30 +156,8 @@ class IoResxManager {
             ext = '.' + ext;
         }
         return this.items
-            .filter(item => item.fn.src.ext == ext)
-            .map(item => item.fn)
+            .filter(fn => fn.src.ext == ext)
             .filter(filter);
-    }
-    getCtxByFn(fn) {
-        return this.items.filter(ctx => ctx.fn == fn)[0];
-    }
-    addLayoutTo(fn, scrFullPath) {
-        const ctx = this.getCtxByFn(fn);
-        if (ctx) {
-            ctx.layout = scrFullPath;
-        }
-        else {
-            debug_1._logError("Not found context for:", fn.src.fullPath, scrFullPath);
-        }
-    }
-    addPartialTo(fn, scrFullPath) {
-        const ctx = this.getCtxByFn(fn);
-        if (ctx) {
-            (ctx.partials || (ctx.partials = [])).push(scrFullPath);
-        }
-        else {
-            debug_1._logError("Not found context for:", fn.src.fullPath, scrFullPath);
-        }
     }
 }
 IoResxManager._instance = new IoResxManager();

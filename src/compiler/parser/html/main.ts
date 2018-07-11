@@ -3,7 +3,7 @@ import path from 'path';
 
 import { _logInfo } from "../../../libs/debug";
 import { tFileNaming } from '../../resx';
-import { tCompilerExport, NoOp, tCompileType } from '../../parser/base';
+import { tCompilerExport, NoOp, tCompileType } from '../base';
 
 
 const parsedCache: {[srcFullPath: string]: string} = {};

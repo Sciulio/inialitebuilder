@@ -2,7 +2,10 @@ import * as handlebars from "handlebars";
 
 
 function _setVersionParam(url: string) {
-  const version = "0.0.0";
+  return url;
+  /*
+  const fileStats = CompilerManager.instance.fileStats(url);
+  const version = fileStats ? fileStats.version : "0";
 
   if (url.indexOf("?") > 0) {
     url += "&";
@@ -11,14 +14,15 @@ function _setVersionParam(url: string) {
   }
   
   return url + "_v=" + version;
+  */
 }
 handlebars.registerHelper("script", function(src) {
-  return new Handlebars.SafeString(
+  return new handlebars.SafeString(
     `<script src="${_setVersionParam(src)}"></script>`
   );
 });
 handlebars.registerHelper("style", function(src) {
-  return new Handlebars.SafeString(
+  return new handlebars.SafeString(
     `<link rel="stylesheet" href="${_setVersionParam(src)}"/>`
   );
 });

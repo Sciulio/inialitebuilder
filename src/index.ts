@@ -3,9 +3,10 @@ import path from 'path';
 import { _log, _logSeparator, _logInfo, _logError } from "./libs/debug";
 import { getFilesRecusively } from "./libs/io";
 
-import { CompilerManager, parseFile, precompileFile, compileFile, preparseFile } from './compiler/main';
-import { IoResxManager, persistFile, copyFile } from './compiler/resx';
+import { parseFile, precompileFile, compileFile, preparseFile } from './compiler/main';
+import { persistFile, copyFile } from './compiler/resx';
 import { loadConfiguration, tConfig } from './libs/config';
+import { initDb, disposeDb } from './libs/audit';
 
 
 function start() {
@@ -15,12 +16,12 @@ function start() {
   _log(config);
   _logSeparator();
 
-  CompilerManager.instance.start(config.output.root);
+  //CompilerManager.instance.start(config.output.root);
 
   return config;
 }
 function end(config: tConfig) {
-  CompilerManager.instance.stop(config.output.root);
+  //CompilerManager.instance.stop(config.output.root);
 }
 
 export function doPhase(phaseName: string, siteName: string) {
@@ -33,51 +34,42 @@ export function doPhase(phaseName: string, siteName: string) {
 
   const phase = config.phases[phaseName];
 
-  /*config.target.sites
-  .filter(_siteName => !siteName || siteName == _siteName)
-  .forEach(sitePath => {
-    Object.keys(CompilerManager.instance.stats.current.files)
-    .forEach(srcFileFullPath => {
-      const srcFilePath = path.dirname(srcFileFullPath);
-
-      mkdirSync(filePath);
-      fs.copyFileSync(filePath, filePath);
-    });
-  });*/
-
   end(config);
 }
-export function build(outputPhase: string) {
+export async function build(outputPhase: string) {
   const config = start();
 
-  config.target.sites
-  .forEach(sitePath => {
-    const targetPath = path.join(config.target.root, sitePath);
-    const outputPath = path.join(config.output.root, sitePath);
+  const promises = config.target.sites
+  .map(async siteName => {
+    //CompilerManager.instance.building(siteName);
+    await initDb(siteName);
 
-    _log(sitePath, targetPath, outputPath);
+    const targetPath = path.join(config.target.root, siteName);
+    const outputPath = path.join(config.output.root, siteName);
+
+    _log(siteName, targetPath, outputPath);
     _logSeparator();
 
-    const sourceFileSet = getFilesRecusively(targetPath);
+    const sourceFileSet = await getFilesRecusively(targetPath);
 
     _log(sourceFileSet);
 
     _logInfo("PreParsing FileSet -----------------------------------------------------");
-    const namedFileSet = sourceFileSet
-    .map(sourceFilePath => preparseFile(sourceFilePath, targetPath, outputPath));
+    const namedFileSet = await Promise.all(
+      sourceFileSet
+      .map(sourceFilePath => preparseFile(siteName, sourceFilePath, targetPath, outputPath))
+    );
 
-    //parseFileSet(namedFileSet);
     _logInfo("Parsing FileSet -----------------------------------------------------");
     namedFileSet
-    .forEach(parseFile);
+    .map(parseFile);
 
-    //precompileFileSet();
     _logInfo("Precompile FileSet -----------------------------------------------------");
-    IoResxManager.instance.fnList()
+    namedFileSet
     .forEach(precompileFile);
 
     _logInfo("Compile FileSet -----------------------------------------------------");
-    const compiledSet = IoResxManager.instance.fnList()
+    const compiledSet = namedFileSet
     .filter(fn => fn.fileName[0] != '_')
     .map(fn => {
       return {
@@ -88,20 +80,23 @@ export function build(outputPhase: string) {
 
     _logInfo("Persisting FileSet -----------------------------------------------------");
     compiledSet
-    .forEach(cItem => {
+    .forEach(async cItem => {
       switch (cItem.fn.cType.type) {
         case "compilable":
           if (cItem.content) {
-            persistFile(cItem.fn, cItem.content);
+            await persistFile(cItem.fn, cItem.content);
           }
           break;
         case "site-resx":
-          copyFile(cItem.fn);
+          await copyFile(cItem.fn);
           break;
         case "build-resx": break;
       }
     });
+    
+    await disposeDb(siteName);
   });
+  await Promise.all(promises);
 
   end(config);
 };

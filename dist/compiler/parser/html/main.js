@@ -6,7 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const debug_1 = require("../../../libs/debug");
-const base_1 = require("../../parser/base");
+const base_1 = require("../base");
 const parsedCache = {};
 function preparse(sourceFilePath) {
     return {

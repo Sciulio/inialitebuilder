@@ -1,11 +1,8 @@
 import path from 'path';
-import fs from 'fs';
-
 import { _logError, _logInfo } from "../libs/debug";
-
-import { tFileNaming, IoResxManager, toFileNaming } from './resx';
-import { tCompilerExport, tCompileType } from './parser/base';
 import { dynamolo } from '../libs/dynamolo';
+import { tCompilerExport, tCompileType } from './parser/base';
+import { IoResxManager, tFileNaming } from './resx';
 
 
 const parsersSet: { [ext: string]: tCompilerExport } = {};
@@ -18,16 +15,7 @@ dynamolo<tCompilerExport>(
 );
 
 
-/*
-TODO
-function getParserSet(ext: string) {
-  if (ext in parsersSet) {
-    return parsersSet[ext];
-  }
-}
-*/
-
-export function preparseFile(sourceFilePath: string, targetPath: string, outputPath: string) {
+export async function preparseFile(siteName: string, sourceFilePath: string, targetPath: string, outputPath: string) {
   const ext = path.extname(sourceFilePath).substring(1);
   let ctype: tCompileType = {
     isPartial: false,
@@ -38,14 +26,14 @@ export function preparseFile(sourceFilePath: string, targetPath: string, outputP
     ctype = parsersSet[ext].preparse(sourceFilePath);
   }
 
-  return toFileNaming(sourceFilePath, targetPath, outputPath, ctype);
+  return await IoResxManager.instance.create(siteName, sourceFilePath, targetPath, outputPath, ctype);
 }
+
 export function parseFile(fn: tFileNaming): void {
   if (!fn.src.ext) {
     _logError("File without ext", fn.src.fullPath);
     return;
   }
-  IoResxManager.instance.add(fn);
 
   _logInfo(` PARSING: "${fn.src.fullPath}"`);
 
@@ -66,35 +54,16 @@ export function precompileFile(fn: tFileNaming) {
   }
 }
 
-function fnCtxMustBeCompiled(fn: tFileNaming) {
-  //TODO: may want to compile some extensions always (scss, etcc)
-  //if (fnMustBeCompiled(fn)) {
+function fnCtxMustBeCompiled(fn: tFileNaming): boolean {
+  //TODO: may always want to compile some extensions (scss, etcc) -> type "build-resx"
   if (fn.stats.needsBuild) {
     return true;
   }
 
   //TODO: check all dependancies (lang, json, ... etc)
 
-  const fnCtx = IoResxManager.instance.getCtxByFn(fn);
-  if (fnCtx.layout) {
-    const fnLayout = IoResxManager.instance.fnItem(fn => fn.src.fullPathNoExt == fnCtx.layout);
-
-    if (fnLayout && fnCtxMustBeCompiled(fnLayout)) {
-      return true;
-    }
-  }
-
-  if (fnCtx.partials) {
-    if (fnCtx.partials.some(_partial => {
-      const fnPartial = IoResxManager.instance.fnItem(fn => fn.src.fullPathNoExt == _partial);
-
-      return fnPartial && fnCtxMustBeCompiled(fnPartial);
-    })) {
-      return true;
-    }
-  }
-
-  return false;
+  return fn.relations && fn.relations
+  .some(relation => fnCtxMustBeCompiled(relation.fn));
 }
 
 export function compileFile(fn: tFileNaming, forceCompile: boolean = false) {
@@ -114,90 +83,4 @@ export function compileFile(fn: tFileNaming, forceCompile: boolean = false) {
   }
 
   return content;
-}
-
-
-export type tCompilationStatsItemSiteItem = {
-  version: number,
-  compiledOnLastBuild?: boolean
-};
-export type tCompilationStatsItemSite = {[relPath: string]: tCompilationStatsItemSiteItem};
-export type tCompilationStatsItem = {
-  started: number;
-  finished: number;
-  build: number;
-  sites: {[siteRoot: string]: tCompilationStatsItemSite};
-};
-export type tCompilationStats = {
-  previous: tCompilationStatsItem;
-  current: tCompilationStatsItem;
-};
-
-export class CompilerManager {
-  static readonly _instance: CompilerManager = new CompilerManager();
-  static get instance(): CompilerManager {
-    return CompilerManager._instance;
-  }
-  private constructor() {}
-
-  private _stats?: tCompilationStats;
-  get stats(): tCompilationStats {
-    return this._stats as any;
-  }
-
-  updateFileVersion(srcRoot: string, relPath: string, needsNewVersion: boolean): tCompilationStatsItemSiteItem {
-    const _stats = this._stats;
-    if (!_stats) {
-      throw Error("CICCIO");
-    }
-
-    const prev_siteStatItem: tCompilationStatsItemSite = _stats.previous.sites[srcRoot] || (_stats.previous.sites[srcRoot] = {});
-    const prev_siteStatItemItem: tCompilationStatsItemSiteItem = prev_siteStatItem[relPath] || (prev_siteStatItem[relPath] = {
-      version: 0
-    });
-    const prev_version = prev_siteStatItemItem.version || 0;
-    
-    const curr_siteStatItem: tCompilationStatsItemSite = _stats.current.sites[srcRoot] || (_stats.current.sites[srcRoot] = {});
-    if (relPath in curr_siteStatItem) {
-      return curr_siteStatItem[relPath];
-    }
-
-    return curr_siteStatItem[relPath] = {
-      version: prev_version + (needsNewVersion ? 1 : 0)
-    };
-  }
-
-  start(outputRoot: string) {
-    const compilationStatsPath = path.join(outputRoot, "compilationStats.json");
-
-    const _stats = this._stats = {} as tCompilationStats;
-
-    if (fs.existsSync(compilationStatsPath)) {
-      _stats.previous = JSON.parse(fs.readFileSync(compilationStatsPath).toString()) as any;
-    } else {
-      _stats.previous = {} as any;
-    }
-    _stats.previous.build = _stats.previous.build || 0;
-    _stats.previous.started = _stats.previous.started || 0;
-    _stats.previous.finished = _stats.previous.finished || 0;
-    _stats.previous.sites = _stats.previous.sites || {};
-
-    _stats.current = {
-      build: _stats.previous.build + 1,
-      started: Date.now(),
-      finished: 0,
-      sites: {}
-    };
-  }
-
-  stop(outputRoot: string) {
-    const compilationStatsPath = path.join(outputRoot, "compilationStats.json");
-
-    const _stats = this._stats as tCompilationStats;
-
-    _stats.current.finished = Date.now();
-
-    const content = JSON.stringify(_stats.current, null, 2);
-    fs.writeFileSync(compilationStatsPath, content);
-  }
 }

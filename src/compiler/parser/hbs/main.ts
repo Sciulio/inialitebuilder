@@ -9,7 +9,7 @@ import handlebars from "handlebars";
 import './helpers/main';
 import { TemplateDelegate } from 'handlebars';
 import { tFileNaming, toRootRelPath, IoResxManager } from '../../resx';
-import { tCompilerExport, tCompileType } from '../../parser/base';
+import { tCompilerExport, tCompileType } from '../base';
 import { compileFile } from '../../main';
 
 
@@ -25,7 +25,6 @@ export const parsers = {
 const contentCache: {[srcFullPath: string]: string} = {};
 const templateCache: {[srcFullPath: string]: TemplateDelegate} = {};
 
-
 function parseToAbsPath(isLayout: boolean, fn: tFileNaming, content: string): string {
   let extRegexp: RegExp;
   let convertContent: (path: string) => string;
@@ -33,7 +32,7 @@ function parseToAbsPath(isLayout: boolean, fn: tFileNaming, content: string): st
   //TODO: improve regex for '..."}}'
   if (isLayout) {
     extRegexp = /{{\s*#extend\s+"(.*?)"/ig;
-    convertContent = (rootRelPath) => '{{#extend "' + rootRelPath + '"';
+    convertContent = (rootRelPathNoExt) => '{{#extend "' + rootRelPathNoExt + '"';
   } else {
     extRegexp = /{{\s*>\s+"??(.*?)\s+"??/ig;
     convertContent = (rootRelPath) => '{{> "' + rootRelPath + '"';
@@ -44,15 +43,15 @@ function parseToAbsPath(isLayout: boolean, fn: tFileNaming, content: string): st
   while ((match = extRegexp.exec(content))) {
     const strip = match[0];
     const relPath = match[1].replace(/"/g, "");
-    const rootRelPath = toRootRelPath(fn, relPath);
+    const rootRelPathNoExt = toRootRelPath(fn, relPath);
+    const rootRelPath = rootRelPathNoExt + ".hbs";
     
-    content = content.replace(strip, convertContent(rootRelPath));
-
-    if (isLayout) {
-      IoResxManager.instance.addLayoutTo(fn, rootRelPath);
-    } else {
-      IoResxManager.instance.addPartialTo(fn, rootRelPath);
-    }
+    content = content.replace(strip, convertContent(rootRelPathNoExt));
+    
+    fn.relations.push({
+      type: isLayout ? "layout" : "partial",
+      fn: IoResxManager.instance.fnItem(fn => fn.src.fullPath == rootRelPath)
+    });
   }
 
   return content;
@@ -122,8 +121,8 @@ function mergeResxData(fn: tFileNaming, ctx: any, mR: {ext: string, keyProp: str
   }
 }
 
-function prepareRelateResxDate(srcFullPathNoExt: string, ctx: any) {
-  const fnRelated = IoResxManager.instance.fnItem(_fnItem => _fnItem.src.fullPathNoExt == srcFullPathNoExt)
+function prepareRelatedResxDate(srcFullPathNoExt: string, ctx: any) {
+  const fnRelated = IoResxManager.instance.fnItem(_fnItem => _fnItem.src.fullPathNoExt == srcFullPathNoExt);
   
   mergeResxData(fnRelated, ctx, mergeResx.json);
   mergeResxData(fnRelated, ctx, mergeResx.lang);
@@ -132,22 +131,19 @@ function prepareRelateResxDate(srcFullPathNoExt: string, ctx: any) {
 }
 
 function prepareResxData(fn: tFileNaming, ctx = {}): any {
-  const fnItem = IoResxManager.instance.getCtxByFn(fn);
+  const fnRelLayout = fn.relations.filter(rel => rel.type == "layout")[0];
 
-  if (fnItem.layout) {
-    _logWarn("\t\t\textLayoutContext", fnItem.layout);
-    
-    prepareRelateResxDate(fnItem.layout, ctx);
+  if (fnRelLayout) {
+    _logWarn("\t\t\textLayoutContext", fnRelLayout.fn.src.fullPath);
+    prepareRelatedResxDate(fnRelLayout.fn.src.fullPathNoExt, ctx);
   }
 
-  if (fnItem.partials) {
-    fnItem.partials
-    .forEach(partials => {
-      _logWarn("\t\t\textPartialContext", partials);
-
-      prepareRelateResxDate(partials, ctx);
-    });
-  }
+  fn.relations
+  .filter(fn => fn.type == "partial")
+  .forEach(fnRelPartial => {
+    _logWarn("\t\t\textPartialContext", fnRelPartial.fn.src.fullPath);
+    prepareRelatedResxDate(fnRelPartial.fn.src.fullPathNoExt, ctx);
+  });
 
   return ctx;
 }
