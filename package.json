@@ -1,6 +1,6 @@
 {
   "name": "inialitebuilder",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "description": "A site builder!",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
