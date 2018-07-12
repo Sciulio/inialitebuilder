@@ -1,18 +1,24 @@
 import path from 'path';
 import Datastore from 'nedb';
 import { IoResxManager, tFileNaming } from '../compiler/resx';
+import { loadConfiguration } from './config';
+import "./async";
 
+
+const config = loadConfiguration();
 
 export type baseDoc = {
   _id?: string;
 }
 export type docBuildAudit = baseDoc & {
+  type: "buildinfo",
   on: number;
   duration: number;
 };
 export type docFileAudit = baseDoc & {
+  type: "fileinfo",
   _on: number;
-  srcFullPath: string;
+  relPath: string;
   action: "created" | "edited" | "deleted";
   version: number;
 };
@@ -30,7 +36,7 @@ const dbs: {[key: string]: {
 
 export async function initDb(siteName: string) {
   const db = new Datastore({
-    filename: path.join('cache', siteName + ".db")
+    filename: path.join(config.output.root, siteName + ".db")
   });
   
   dbs[siteName] = {
@@ -53,15 +59,33 @@ export async function disposeDb(siteName: string) {
   const db = dbWrapper.db;
 
   db.insert({
+    type: "buildinfo",
     on: dbWrapper.on,
     duration: Date.now() - dbWrapper.on
   } as docBuildAudit);
 
+  await (await Promise.all(
+    await IoResxManager.instance.items
+    .filterAsync(async fn => fn.stats.needsNewVersion || !(await fileLastAudit(siteName, fn.relPath)))
+  ))
+  .forEachAsync(async fn => { await insertFileAudit(fn, dbWrapper.on); });
+
+  /*
+  const filteredItems = await IoResxManager.instance.items
+  .filterAsync(async fn => fn.stats.needsNewVersion || !(await fileLastAudit(siteName, fn.relPath)));
   await Promise.all(
-    IoResxManager.instance.items
-    .filter(fn => fn.stats.needsNewVersion)
-    .map(async fn => insertFileAudit(fn, dbWrapper.on))
+    filteredItems.map(async fn => await insertFileAudit(fn, dbWrapper.on))
   );
+  */
+
+  /*const filteredItems = await Promise.all(
+    IoResxManager.instance.items
+    //.filter(async fn => fn.stats.needsNewVersion || !(await fileLastAudit(siteName, fn.relPath)))
+    .map(async fn => fn.stats.needsNewVersion || !(await fileLastAudit(siteName, fn.relPath)))
+  );
+  await Promise.all(
+    .map(async fn => await insertFileAudit(fn, dbWrapper.on))
+  );*/
   //TODO: add deleted-file case
 
   delete dbs[siteName];
@@ -74,33 +98,26 @@ async function insertFileAudit(fn: tFileNaming, _on: number) {
 
   return new Promise<docFileAudit>((res, rej) => {
     db.insert<docFileAudit>({
+      type: "fileinfo",
       _on,
       action: lastAudit ? "edited" : "created",
-      srcFullPath: fn.src.fullPath,
+      relPath: fn.relPath,
       version: fn.stats.version
     }, (err, doc) => {
-      if (err) {
-        rej(doc);
-      } else {
-        res(doc);
-      }
+      err ? rej(err) : res(doc);
     });
   });
 }
 
-export async function fileLastAudit(siteName: string, srcFullPath: string): Promise<tFileAudit> {
+export async function fileLastAudit(siteName: string, relPath: string): Promise<tFileAudit> {
   const db = dbs[siteName].db;
 
   return new Promise<tFileAudit>((res, rej) => {
     db.findOne({
       type: "fileinfo",
-      srcFullPath
+      relPath
     }, async (err, doc: docFileAudit) => {
-      if (err) {
-        rej(err);
-      } else {
-        res(await convertObjToFileInfo(siteName, doc));
-      }
+      err ? rej(err) : res(await convertObjToFileInfo(siteName, doc));
     });
   });
 }
@@ -117,13 +134,7 @@ export async function lastBuildInfo(siteName: string): Promise<tBuildAudit> {
     })
     .limit(1)
     .exec((err, doc) => {
-      if (err) {
-        rej(err);
-      } else {
-        //delete doc.type;
-        const ff = convertObjToBuildInfo(doc[0]);
-        res();
-      }
+      err ? rej(err) : res(convertObjToBuildInfo(doc[0]));
     });
   });
 }
@@ -135,12 +146,7 @@ async function getBuildInfo(siteName: string, on: number): Promise<tBuildAudit> 
     db.findOne({
       type: "buildinfo",
     }, (err, doc) => {
-      if (err) {
-        rej(err);
-      } else {
-        //delete doc.type;
-        res(convertObjToBuildInfo((doc as docBuildAudit)));
-      }
+      err ? rej(err) : res(convertObjToBuildInfo(doc as docBuildAudit));
     });
   });
 }
@@ -151,6 +157,7 @@ function convertObjToBuildInfo(obj: docBuildAudit): tBuildAudit {
   }
   
   return {
+    type: "buildinfo",
     on: 0,
     duration: 0
   };

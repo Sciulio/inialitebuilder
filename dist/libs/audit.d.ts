@@ -1,13 +1,16 @@
+import "./async";
 export declare type baseDoc = {
     _id?: string;
 };
 export declare type docBuildAudit = baseDoc & {
+    type: "buildinfo";
     on: number;
     duration: number;
 };
 export declare type docFileAudit = baseDoc & {
+    type: "fileinfo";
     _on: number;
-    srcFullPath: string;
+    relPath: string;
     action: "created" | "edited" | "deleted";
     version: number;
 };
@@ -17,5 +20,5 @@ export declare type tFileAudit = docFileAudit & {
 };
 export declare function initDb(siteName: string): Promise<{}>;
 export declare function disposeDb(siteName: string): Promise<void>;
-export declare function fileLastAudit(siteName: string, srcFullPath: string): Promise<tFileAudit>;
+export declare function fileLastAudit(siteName: string, relPath: string): Promise<tFileAudit>;
 export declare function lastBuildInfo(siteName: string): Promise<tBuildAudit>;

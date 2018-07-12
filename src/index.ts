@@ -36,6 +36,7 @@ export function doPhase(phaseName: string, siteName: string) {
 
   end(config);
 }
+
 export async function build(outputPhase: string) {
   const config = start();
 
