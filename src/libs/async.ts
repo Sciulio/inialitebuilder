@@ -10,15 +10,15 @@ Array.prototype.mapAsync = async function<T, W>(cback: (item: T, idx: number) =>
 Array.prototype.forEachAsync = async function<T>(cback: (item: T, idx: number) => Promise<void>): Promise<void> {
   await this.mapAsync(cback);
 }
-//TODO: preserve sort
 Array.prototype.filterAsync = async function<T>(cback: (item: T, idx: number) => Promise<boolean>): Promise<T[]> {
-  const resArray: T[] = [];
+  const clone = this.slice(0);
+  const indices: number[] = [];
 
   await this.mapAsync(async (item, idx) => {
-    if (await cback(item, idx)) {
-      resArray.push(item);
+    if (!await cback(item, idx)) {
+      indices.push(idx);
     }
   });
 
-  return resArray;
+  return clone.filter((item, idx) => !indices.some(id => id == idx));
 }

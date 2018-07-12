@@ -20,13 +20,16 @@ Array.prototype.forEachAsync = function (cback) {
 //TODO: preserve sort
 Array.prototype.filterAsync = function (cback) {
     return __awaiter(this, void 0, void 0, function* () {
-        const resArray = [];
+        const clone = this.slice(0);
+        const indices = [];
+        //const resArray: T[] = [];
         yield this.mapAsync((item, idx) => __awaiter(this, void 0, void 0, function* () {
-            if (yield cback(item, idx)) {
-                resArray.push(item);
+            if (!(yield cback(item, idx))) {
+                indices.push(idx);
+                //resArray.push(item);
             }
         }));
-        return resArray;
+        return clone.filter((item, idx) => !indices.some(id => id == idx));
     });
 };
 //# sourceMappingURL=async.js.map
