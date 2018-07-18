@@ -1,4 +1,3 @@
-/// <reference types="handlebars" />
 import handlebars from "handlebars";
 import './helpers/main';
 import { tCompilerExport } from '../base';

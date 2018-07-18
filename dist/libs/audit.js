@@ -12,6 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const path_1 = __importDefault(require("path"));
+const fs_extra_1 = __importDefault(require("fs-extra"));
 const nedb_1 = __importDefault(require("nedb"));
 const resx_1 = require("../compiler/resx");
 const config_1 = require("./config");
@@ -52,6 +53,15 @@ function disposeDb(siteName) {
         yield (yield Promise.all(yield resx_1.IoResxManager.instance.items
             .filterAsync((fn) => __awaiter(this, void 0, void 0, function* () { return fn.stats.needsNewVersion || !(yield fileLastAudit(siteName, fn.relPath)); }))))
             .forEachAsync((fn) => __awaiter(this, void 0, void 0, function* () { yield insertFileAudit(fn, dbWrapper.on); }));
+        //TODO save file with files hashes for ws and etags
+        const wsItems = yield resx_1.IoResxManager.instance.items
+            .mapAsync((fn) => __awaiter(this, void 0, void 0, function* () {
+            return {
+                url: fn.www.url,
+                hash: fn.www.hash
+            };
+        }));
+        yield fs_extra_1.default.writeJson(path_1.default.join(config.output.root, siteName + ".json"), wsItems);
         /*
         const filteredItems = await IoResxManager.instance.items
         .filterAsync(async fn => fn.stats.needsNewVersion || !(await fileLastAudit(siteName, fn.relPath)));

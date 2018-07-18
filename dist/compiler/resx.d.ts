@@ -26,6 +26,7 @@ export declare type tFileNaming = {
     www: {
         isPartial: boolean;
         url: string;
+        hash?: string;
     };
 };
 export declare function persistFile(fn: tFileNaming, content: string): Promise<void>;

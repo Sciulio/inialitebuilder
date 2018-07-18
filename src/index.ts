@@ -1,4 +1,5 @@
 import path from 'path';
+import crypto from 'crypto';
 
 import { _log, _logSeparator, _logInfo, _logError } from "./libs/debug";
 import { getFilesRecusively } from "./libs/io";
@@ -8,6 +9,9 @@ import { persistFile, copyFile } from './compiler/resx';
 import { loadConfiguration, tConfig } from './libs/config';
 import { initDb, disposeDb } from './libs/audit';
 
+
+const cryptoMd5Hasher = crypto
+.createHash('md5');
 
 function start() {
   const config = loadConfiguration();
@@ -73,9 +77,14 @@ export async function build(outputPhase: string) {
     const compiledSet = namedFileSet
     .filter(fn => fn.fileName[0] != '_')
     .map(fn => {
+      const content = compileFile(fn) || "";
+      fn.www.hash = cryptoMd5Hasher
+      .update(content)
+      .digest("hex");
+
       return {
         fn,
-        content: compileFile(fn)
+        content
       };
     });
 

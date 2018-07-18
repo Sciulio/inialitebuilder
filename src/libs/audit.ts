@@ -1,4 +1,5 @@
 import path from 'path';
+import fse from 'fs-extra';
 import Datastore from 'nedb';
 import { IoResxManager, tFileNaming } from '../compiler/resx';
 import { loadConfiguration } from './config';
@@ -69,6 +70,17 @@ export async function disposeDb(siteName: string) {
     .filterAsync(async fn => fn.stats.needsNewVersion || !(await fileLastAudit(siteName, fn.relPath)))
   ))
   .forEachAsync(async fn => { await insertFileAudit(fn, dbWrapper.on); });
+
+  //TODO save file with files hashes for ws and etags
+  const wsItems = await IoResxManager.instance.items
+  .mapAsync(async fn => {
+    return {
+      url: fn.www.url,
+      hash: fn.www.hash
+    };
+  });
+  
+  await fse.writeJson(path.join(config.output.root, siteName + ".json"), wsItems);
 
   /*
   const filteredItems = await IoResxManager.instance.items
