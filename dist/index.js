@@ -19,8 +19,6 @@ const main_1 = require("./compiler/main");
 const resx_1 = require("./compiler/resx");
 const config_1 = require("./libs/config");
 const audit_1 = require("./libs/audit");
-const cryptoMd5Hasher = crypto_1.default
-    .createHash('md5');
 function start() {
     const config = config_1.loadConfiguration();
     debug_1._log("Configs:");
@@ -69,7 +67,8 @@ function build(outputPhase) {
                 .filter(fn => fn.fileName[0] != '_')
                 .map(fn => {
                 const content = main_1.compileFile(fn) || "";
-                fn.www.hash = cryptoMd5Hasher
+                fn.www.hash = crypto_1.default
+                    .createHash('md5')
                     .update(content)
                     .digest("hex");
                 return {

@@ -10,9 +10,6 @@ import { loadConfiguration, tConfig } from './libs/config';
 import { initDb, disposeDb } from './libs/audit';
 
 
-const cryptoMd5Hasher = crypto
-.createHash('md5');
-
 function start() {
   const config = loadConfiguration();
 
@@ -78,7 +75,8 @@ export async function build(outputPhase: string) {
     .filter(fn => fn.fileName[0] != '_')
     .map(fn => {
       const content = compileFile(fn) || "";
-      fn.www.hash = cryptoMd5Hasher
+      fn.www.hash = crypto
+      .createHash('md5')
       .update(content)
       .digest("hex");
 
