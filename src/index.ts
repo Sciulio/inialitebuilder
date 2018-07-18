@@ -77,7 +77,7 @@ export async function build(outputPhase: string) {
       const content = compileFile(fn) || "";
       fn.www.hash = crypto
       .createHash('md5')
-      .update(content)
+      .update(content.toString())
       .digest("hex");
 
       return {

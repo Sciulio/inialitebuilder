@@ -69,7 +69,7 @@ function build(outputPhase) {
                 const content = main_1.compileFile(fn) || "";
                 fn.www.hash = crypto_1.default
                     .createHash('md5')
-                    .update(content)
+                    .update(content.toString())
                     .digest("hex");
                 return {
                     fn,
