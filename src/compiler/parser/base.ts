@@ -1,5 +1,17 @@
 import { tFileNaming } from "../resx";
+import { Stream } from "stream";
 
+
+// singleton type???
+export interface ICompileExecutor {
+  extension: string|string[];
+
+  preparse(sourceFilePath: string): tCompileType;
+  parse(fn: tFileNaming): Promise<void>;
+  precompile(fn: tFileNaming): Promise<void>;
+  compile(fn: tFileNaming): Promise<string|Stream>;
+  aftercompile(fn: tFileNaming, content: string): Promise<string|Stream>;
+}
 
 export type tCompileType = {
   isPartial: boolean;
@@ -13,6 +25,7 @@ export type tCompilerExport = {
   parse: (fn: tFileNaming) => void;
   precompile(fn: tFileNaming): void;
   compile: (fn: tFileNaming) => string;
+  aftercompile: (fn: tFileNaming, content: string|Stream|null) => string;
 }
 
 export const NoOp = (...args: any[]) => null as any;

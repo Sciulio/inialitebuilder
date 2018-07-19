@@ -8,6 +8,8 @@ import lodash from 'lodash';
 import handlebars from "handlebars";
 import './helpers/main';
 import { TemplateDelegate } from 'handlebars';
+import { minify } from "html-minifier";
+
 import { tFileNaming, toRootRelPath, IoResxManager } from '../../resx';
 import { tCompilerExport, tCompileType } from '../base';
 import { compileFile } from '../../main';
@@ -169,11 +171,23 @@ function compile(fn: tFileNaming) {
   return null;
 }
 
+function aftercompile(fn: tFileNaming, content: string) {
+  //TODO: load config
+
+  return minify(content, {
+    collapseWhitespace: true,
+    conservativeCollapse: true,
+    preserveLineBreaks: true,
+    removeComments: true
+  });
+}
+
 export default {
   extension: "hbs",
   //persist: true,
   preparse,
   parse,
   precompile,
-  compile
+  compile,
+  aftercompile
 } as tCompilerExport;

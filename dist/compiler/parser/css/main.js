@@ -6,34 +6,41 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const fs_1 = __importDefault(require("fs"));
 const debug_1 = require("../../../libs/debug");
 const base_1 = require("../base");
+const clean_css_1 = __importDefault(require("clean-css"));
 const parsedCache = {};
 function preparse(sourceFilePath) {
     return {
         isPartial: false,
-        type: "build-resx"
+        type: "compilable"
     };
 }
 ;
 function parse(fn) {
-    debug_1._logInfo("\tParsing JSON"); //, fn.src.fullPath);
+    debug_1._logInfo("\tParsing CSS"); //, fn.src.fullPath);
     if (fn.src.fullPath in parsedCache) {
         return;
     }
     const content = fs_1.default.readFileSync(fn.src.fullPath).toString();
-    const data = JSON.parse(content);
-    parsedCache[fn.src.fullPath] = data;
+    parsedCache[fn.src.fullPath] = content;
 }
-function compile(fn, ctx) {
-    debug_1._logInfo("\tCompiling JSON"); //, fn.src.fullPath);
-    return parsedCache[fn.src.fullPath];
+function compile(fn) {
+    debug_1._logInfo("\tCompiling SASS/SCSS");
+    return parsedCache[fn.src.fullPath].toString();
+}
+const ccss = new clean_css_1.default({
+    inliner: true,
+});
+function aftercompile(fn, content) {
+    return ccss.min;
+    ify(content).styles;
 }
 exports.default = {
-    extension: "json",
+    extension: "css",
     //persist: false,
     preparse,
     parse,
     precompile: base_1.NoOp,
     compile,
-    aftercompile: base_1.NoOp
+    aftercompile
 };
 //# sourceMappingURL=main.js.map

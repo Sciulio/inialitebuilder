@@ -14,17 +14,21 @@
   "author": "Sciulio <sciulio@msn.com>",
   "license": "ISC",
   "dependencies": {
+    "clean-css": "^4.1.11",
     "fs-extra": "^6.0.1",
     "handlebars": "^4.0.11",
     "handlebars-layouts": "^3.1.4",
+    "html-minifier": "^3.5.19",
     "lodash": "^4.17.10",
     "mkpath": "^1.0.0",
     "nedb": "^1.8.0",
     "node-sass": "^4.9.1"
   },
   "devDependencies": {
+    "@types/clean-css": "^3.4.30",
     "@types/fs-extra": "^5.0.4",
     "@types/handlebars": "^4.0.38",
+    "@types/html-minifier": "^3.5.2",
     "@types/lodash": "^4.14.109",
     "@types/mkpath": "^0.1.29",
     "@types/nedb": "^1.8.5",

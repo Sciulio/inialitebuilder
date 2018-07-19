@@ -39,7 +39,6 @@ export async function getFilesRecusively(...args: any[]): Promise<string[]> {
     .reduce(async (p_files, file) => {
       const files = await p_files;
       const name = path.join(dir, file);
-      //const isDirectory = fs.statSync(name).isDirectory();
       const isDirectory = (await fse.stat(name)).isDirectory();
       return isDirectory ? [...files, ...await getFilesRecusively(name)] : [...files, name];
     }, Promise.resolve([] as string[]));

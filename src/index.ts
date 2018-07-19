@@ -3,7 +3,7 @@ import path from 'path';
 import { _log, _logSeparator, _logInfo, _logError } from "./libs/debug";
 import { getFilesRecusively } from "./libs/io";
 
-import { parseFile, precompileFile, compileFile, preparseFile } from './compiler/main';
+import { parseFile, precompileFile, compileFile, preparseFile, aftercompile } from './compiler/main';
 import { persistFile, copyFile } from './compiler/resx';
 import { loadConfiguration, tConfig } from './libs/config';
 import { initDb, disposeDb } from './libs/audit';
@@ -40,6 +40,7 @@ export function doPhase(phaseName: string, siteName: string) {
 export async function build(outputPhase: string) {
   const config = start();
 
+  //TODO: make this async
   const promises = config.target.sites
   .map(async siteName => {
     //CompilerManager.instance.building(siteName);
@@ -59,6 +60,7 @@ export async function build(outputPhase: string) {
     const namedFileSet = await Promise.all(
       sourceFileSet
       .map(sourceFilePath => preparseFile(siteName, sourceFilePath, targetPath, outputPath))
+      //.map(async sourceFilePath => await preparseFile(siteName, sourceFilePath, targetPath, outputPath))
     );
 
     _logInfo("Parsing FileSet -----------------------------------------------------");
@@ -69,6 +71,7 @@ export async function build(outputPhase: string) {
     namedFileSet
     .forEach(precompileFile);
 
+    //TODO: use streams where possible for compiled content
     _logInfo("Compile FileSet -----------------------------------------------------");
     const compiledSet = namedFileSet
     .filter(fn => fn.fileName[0] != '_')
@@ -79,9 +82,11 @@ export async function build(outputPhase: string) {
       };
     });
 
-    _logInfo("Persisting FileSet -----------------------------------------------------");
+    _logInfo("Aftercompile and Persisting FileSet -----------------------------------------------------");
     compiledSet
     .forEach(async cItem => {
+      cItem.content = aftercompile(cItem.fn, cItem.content);
+
       switch (cItem.fn.cType.type) {
         case "compilable":
           if (cItem.content) {

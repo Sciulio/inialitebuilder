@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
+const html_minifier_1 = require("html-minifier");
 const debug_1 = require("../../../libs/debug");
 const base_1 = require("../base");
 const parsedCache = {};
@@ -27,12 +28,22 @@ function compile(fn) {
     debug_1._logInfo("\tCompiling HTML"); //, fn.src.fullPath);
     return parsedCache[fn.src.fullPath];
 }
+function aftercompile(fn, content) {
+    //TODO: load config
+    return html_minifier_1.minify(content, {
+        collapseWhitespace: true,
+        conservativeCollapse: true,
+        preserveLineBreaks: true,
+        removeComments: true
+    });
+}
 exports.default = {
     extension: "html",
     //persist: true,
     preparse,
     parse,
     precompile: base_1.NoOp,
-    compile
+    compile,
+    aftercompile
 };
 //# sourceMappingURL=main.js.map

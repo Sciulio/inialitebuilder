@@ -4,6 +4,7 @@ import { _logInfo } from "../../../libs/debug";
 import { tFileNaming } from '../../resx';
 import { NoOp, tCompilerExport, tCompileType } from '../base';
 import sass from 'node-sass';
+import CleanCss from 'clean-css';
 
 
 const parsedCache: {[srcFullPath: string]: sass.Result} = {};
@@ -28,10 +29,17 @@ function parse(fn: tFileNaming) {
   parsedCache[fn.src.fullPath] = template;
 }
 
-function compile(fn: tFileNaming, ctx: any) {
+function compile(fn: tFileNaming) {
   _logInfo("\tCompiling SASS/SCSS");
 
   return parsedCache[fn.src.fullPath].css.toString();
+}
+
+const ccss = new CleanCss({
+  inliner: true,
+});
+function aftercompile(fn: tFileNaming, content: string) {
+  return ccss.minify(content).styles;
 }
 
 export default {
@@ -40,5 +48,6 @@ export default {
   preparse,
   parse,
   precompile: NoOp,
-  compile
+  compile,
+  aftercompile
 } as tCompilerExport;

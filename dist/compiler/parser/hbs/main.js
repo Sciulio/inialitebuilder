@@ -9,6 +9,7 @@ const debug_1 = require("../../../libs/debug");
 const lodash_1 = __importDefault(require("lodash"));
 const handlebars_1 = __importDefault(require("handlebars"));
 require("./helpers/main");
+const html_minifier_1 = require("html-minifier");
 const resx_1 = require("../../resx");
 const main_1 = require("../../main");
 var layouts = require('handlebars-layouts');
@@ -132,12 +133,22 @@ function compile(fn) {
     }
     return null;
 }
+function aftercompile(fn, content) {
+    //TODO: load config
+    return html_minifier_1.minify(content, {
+        collapseWhitespace: true,
+        conservativeCollapse: true,
+        preserveLineBreaks: true,
+        removeComments: true
+    });
+}
 exports.default = {
     extension: "hbs",
     //persist: true,
     preparse,
     parse,
     precompile,
-    compile
+    compile,
+    aftercompile
 };
 //# sourceMappingURL=main.js.map

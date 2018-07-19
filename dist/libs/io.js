@@ -36,7 +36,6 @@ function getFilesRecusively(...args) {
                 .reduce((p_files, file) => __awaiter(this, void 0, void 0, function* () {
                 const files = yield p_files;
                 const name = path.join(dir, file);
-                //const isDirectory = fs.statSync(name).isDirectory();
                 const isDirectory = (yield fs_extra_1.default.stat(name)).isDirectory();
                 return isDirectory ? [...files, ...yield getFilesRecusively(name)] : [...files, name];
             }), Promise.resolve([]));

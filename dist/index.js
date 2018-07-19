@@ -42,6 +42,7 @@ exports.doPhase = doPhase;
 function build(outputPhase) {
     return __awaiter(this, void 0, void 0, function* () {
         const config = start();
+        //TODO: make this async
         const promises = config.target.sites
             .map((siteName) => __awaiter(this, void 0, void 0, function* () {
             //CompilerManager.instance.building(siteName);
@@ -54,13 +55,16 @@ function build(outputPhase) {
             debug_1._log(sourceFileSet);
             debug_1._logInfo("PreParsing FileSet -----------------------------------------------------");
             const namedFileSet = yield Promise.all(sourceFileSet
-                .map(sourceFilePath => main_1.preparseFile(siteName, sourceFilePath, targetPath, outputPath)));
+                .map(sourceFilePath => main_1.preparseFile(siteName, sourceFilePath, targetPath, outputPath))
+            //.map(async sourceFilePath => await preparseFile(siteName, sourceFilePath, targetPath, outputPath))
+            );
             debug_1._logInfo("Parsing FileSet -----------------------------------------------------");
             namedFileSet
                 .map(main_1.parseFile);
             debug_1._logInfo("Precompile FileSet -----------------------------------------------------");
             namedFileSet
                 .forEach(main_1.precompileFile);
+            //TODO: use streams where possible for compiled content
             debug_1._logInfo("Compile FileSet -----------------------------------------------------");
             const compiledSet = namedFileSet
                 .filter(fn => fn.fileName[0] != '_')
@@ -70,9 +74,10 @@ function build(outputPhase) {
                     content: main_1.compileFile(fn)
                 };
             });
-            debug_1._logInfo("Persisting FileSet -----------------------------------------------------");
+            debug_1._logInfo("Aftercompile and Persisting FileSet -----------------------------------------------------");
             compiledSet
                 .forEach((cItem) => __awaiter(this, void 0, void 0, function* () {
+                cItem.content = main_1.aftercompile(cItem.fn, cItem.content);
                 switch (cItem.fn.cType.type) {
                     case "compilable":
                         if (cItem.content) {

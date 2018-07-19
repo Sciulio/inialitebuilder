@@ -33,6 +33,7 @@ exports.default = {
     preparse,
     parse,
     precompile: base_1.NoOp,
-    compile
+    compile,
+    aftercompile: base_1.NoOp
 };
 //# sourceMappingURL=main.js.map

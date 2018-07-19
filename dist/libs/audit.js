@@ -52,21 +52,6 @@ function disposeDb(siteName) {
         yield (yield Promise.all(yield resx_1.IoResxManager.instance.items
             .filterAsync((fn) => __awaiter(this, void 0, void 0, function* () { return fn.stats.needsNewVersion || !(yield fileLastAudit(siteName, fn.relPath)); }))))
             .forEachAsync((fn) => __awaiter(this, void 0, void 0, function* () { yield insertFileAudit(fn, dbWrapper.on); }));
-        /*
-        const filteredItems = await IoResxManager.instance.items
-        .filterAsync(async fn => fn.stats.needsNewVersion || !(await fileLastAudit(siteName, fn.relPath)));
-        await Promise.all(
-          filteredItems.map(async fn => await insertFileAudit(fn, dbWrapper.on))
-        );
-        */
-        /*const filteredItems = await Promise.all(
-          IoResxManager.instance.items
-          //.filter(async fn => fn.stats.needsNewVersion || !(await fileLastAudit(siteName, fn.relPath)))
-          .map(async fn => fn.stats.needsNewVersion || !(await fileLastAudit(siteName, fn.relPath)))
-        );
-        await Promise.all(
-          .map(async fn => await insertFileAudit(fn, dbWrapper.on))
-        );*/
         //TODO: add deleted-file case
         delete dbs[siteName];
     });

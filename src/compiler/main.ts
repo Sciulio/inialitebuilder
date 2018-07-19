@@ -3,6 +3,7 @@ import { _logError, _logInfo } from "../libs/debug";
 import { dynamolo } from '../libs/dynamolo';
 import { tCompilerExport, tCompileType } from './parser/base';
 import { IoResxManager, tFileNaming } from './resx';
+import { Stream } from 'stream';
 
 
 const parsersSet: { [ext: string]: tCompilerExport } = {};
@@ -83,4 +84,16 @@ export function compileFile(fn: tFileNaming, forceCompile: boolean = false) {
   }
 
   return content;
+}
+
+export function aftercompile(fn: tFileNaming, content: string|Stream|null) {
+  const ext = fn.src.ext.substring(1);
+  let aftercompiledContent: string|Stream|null = null;
+
+  if (ext in parsersSet) {
+    const parser = parsersSet[ext];
+    aftercompiledContent = parser.aftercompile(fn, content);
+  }
+
+  return (aftercompiledContent || content || "").toString();
 }

@@ -38,5 +38,6 @@ export default {
   preparse,
   parse,
   precompile: NoOp,
-  compile
+  compile,
+  aftercompile: NoOp
 } as tCompilerExport;

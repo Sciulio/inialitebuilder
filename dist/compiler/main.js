@@ -77,4 +77,14 @@ function compileFile(fn, forceCompile = false) {
     return content;
 }
 exports.compileFile = compileFile;
+function aftercompile(fn, content) {
+    const ext = fn.src.ext.substring(1);
+    let aftercompiledContent = null;
+    if (ext in parsersSet) {
+        const parser = parsersSet[ext];
+        aftercompiledContent = parser.aftercompile(fn, content);
+    }
+    return (aftercompiledContent || content || "").toString();
+}
+exports.aftercompile = aftercompile;
 //# sourceMappingURL=main.js.map
