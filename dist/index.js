@@ -12,6 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const path_1 = __importDefault(require("path"));
+const crypto_1 = __importDefault(require("crypto"));
 const debug_1 = require("./libs/debug");
 const io_1 = require("./libs/io");
 const main_1 = require("./compiler/main");
@@ -69,9 +70,14 @@ function build(outputPhase) {
             const compiledSet = namedFileSet
                 .filter(fn => fn.fileName[0] != '_')
                 .map(fn => {
+                const content = main_1.compileFile(fn) || "";
+                fn.www.hash = crypto_1.default
+                    .createHash('md5')
+                    .update(content.toString())
+                    .digest("hex");
                 return {
                     fn,
-                    content: main_1.compileFile(fn)
+                    content
                 };
             });
             debug_1._logInfo("Aftercompile and Persisting FileSet -----------------------------------------------------");

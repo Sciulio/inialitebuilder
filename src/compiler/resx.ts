@@ -34,6 +34,7 @@ export type tFileNaming = {
   www: {
     isPartial: boolean;
     url: string;
+    hash?: string;
   };
 }
 

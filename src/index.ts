@@ -1,4 +1,5 @@
 import path from 'path';
+import crypto from 'crypto';
 
 import { _log, _logSeparator, _logInfo, _logError } from "./libs/debug";
 import { getFilesRecusively } from "./libs/io";
@@ -76,9 +77,15 @@ export async function build(outputPhase: string) {
     const compiledSet = namedFileSet
     .filter(fn => fn.fileName[0] != '_')
     .map(fn => {
+      const content = compileFile(fn) || "";
+      fn.www.hash = crypto
+      .createHash('md5')
+      .update(content.toString())
+      .digest("hex");
+
       return {
         fn,
-        content: compileFile(fn)
+        content
       };
     });
 
