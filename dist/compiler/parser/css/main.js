@@ -31,8 +31,7 @@ const ccss = new clean_css_1.default({
     inliner: true,
 });
 function aftercompile(fn, content) {
-    return ccss.min;
-    ify(content).styles;
+    return ccss.minify(content).styles;
 }
 exports.default = {
     extension: "css",

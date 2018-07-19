@@ -35,7 +35,7 @@ const ccss = new CleanCss({
   inliner: true,
 });
 function aftercompile(fn: tFileNaming, content: string) {
-  return ccss.min ify(content).styles;
+  return ccss.minify(content).styles;
 }
 
 export default {
