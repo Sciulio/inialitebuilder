@@ -12,6 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const path_1 = __importDefault(require("path"));
+const crypto_1 = __importDefault(require("crypto"));
 const debug_1 = require("../libs/debug");
 const dynamolo_1 = require("../libs/dynamolo");
 const resx_1 = require("./resx");
@@ -63,18 +64,20 @@ function fnCtxMustBeCompiled(fn) {
         .some(relation => fnCtxMustBeCompiled(relation.fn));
 }
 function compileFile(fn, forceCompile = false) {
-    debug_1._logInfo(` COMPILING: "${fn.src.fullPath}"`);
-    if (!forceCompile && !fnCtxMustBeCompiled(fn)) {
-        debug_1._logInfo("\t\tSkipped because existing not outdated!");
-        return null;
-    }
-    const ext = fn.src.ext.substring(1);
-    let content = null;
-    if (ext in parsersSet) {
-        const parser = parsersSet[ext];
-        content = parser.compile(fn);
-    }
-    return content;
+    return __awaiter(this, void 0, void 0, function* () {
+        debug_1._logInfo(` COMPILING: "${fn.src.fullPath}"`);
+        if (!forceCompile && !fnCtxMustBeCompiled(fn)) {
+            debug_1._logInfo("\t\tSkipped because existing not outdated!");
+            return null;
+        }
+        const ext = fn.src.ext.substring(1);
+        let content = null;
+        if (ext in parsersSet) {
+            const parser = parsersSet[ext];
+            content = yield parser.compile(fn);
+        }
+        return content;
+    });
 }
 exports.compileFile = compileFile;
 function aftercompile(fn, content) {
@@ -87,4 +90,13 @@ function aftercompile(fn, content) {
     return (aftercompiledContent || content || "").toString();
 }
 exports.aftercompile = aftercompile;
+function prepersist(fn, content) {
+    if (content) {
+        fn.www.hash = crypto_1.default
+            .createHash('md5')
+            .update(content.toString())
+            .digest("hex");
+    }
+}
+exports.prepersist = prepersist;
 //# sourceMappingURL=main.js.map

@@ -12,7 +12,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const path_1 = __importDefault(require("path"));
-const crypto_1 = __importDefault(require("crypto"));
 const debug_1 = require("./libs/debug");
 const io_1 = require("./libs/io");
 const main_1 = require("./compiler/main");
@@ -42,10 +41,26 @@ function doPhase(phaseName, siteName) {
 exports.doPhase = doPhase;
 function build(outputPhase) {
     return __awaiter(this, void 0, void 0, function* () {
+        try {
+            return yield _build(outputPhase);
+        }
+        catch (e) {
+            debug_1._logError(e);
+        }
+    });
+}
+exports.build = build;
+function _logException(err, item, idx) {
+    debug_1._logError(idx, item.src ? item.src.fullPath : item, err);
+    return null;
+    // throw => to end execution
+}
+function _build(outputPhase) {
+    return __awaiter(this, void 0, void 0, function* () {
         const config = start();
         //TODO: make this async
-        const promises = config.target.sites
-            .map((siteName) => __awaiter(this, void 0, void 0, function* () {
+        yield config.target.sites
+            .mapAsync((siteName) => __awaiter(this, void 0, void 0, function* () {
             //CompilerManager.instance.building(siteName);
             yield audit_1.initDb(siteName);
             const targetPath = path_1.default.join(config.target.root, siteName);
@@ -55,10 +70,8 @@ function build(outputPhase) {
             const sourceFileSet = yield io_1.getFilesRecusively(targetPath);
             debug_1._log(sourceFileSet);
             debug_1._logInfo("PreParsing FileSet -----------------------------------------------------");
-            const namedFileSet = yield Promise.all(sourceFileSet
-                .map(sourceFilePath => main_1.preparseFile(siteName, sourceFilePath, targetPath, outputPath))
-            //.map(async sourceFilePath => await preparseFile(siteName, sourceFilePath, targetPath, outputPath))
-            );
+            const namedFileSet = yield sourceFileSet
+                .mapAsync((sourceFilePath) => __awaiter(this, void 0, void 0, function* () { return yield main_1.preparseFile(siteName, sourceFilePath, targetPath, outputPath); }), _logException);
             debug_1._logInfo("Parsing FileSet -----------------------------------------------------");
             namedFileSet
                 .map(main_1.parseFile);
@@ -67,23 +80,24 @@ function build(outputPhase) {
                 .forEach(main_1.precompileFile);
             //TODO: use streams where possible for compiled content
             debug_1._logInfo("Compile FileSet -----------------------------------------------------");
-            const compiledSet = namedFileSet
+            const compiledSet = yield namedFileSet
                 .filter(fn => fn.fileName[0] != '_')
-                .map(fn => {
-                const content = main_1.compileFile(fn) || "";
-                fn.www.hash = crypto_1.default
-                    .createHash('md5')
-                    .update(content.toString())
-                    .digest("hex");
+                .mapAsync((fn) => __awaiter(this, void 0, void 0, function* () {
+                let content = yield main_1.compileFile(fn);
                 return {
                     fn,
-                    content
+                    content: yield main_1.aftercompile(fn, content)
                 };
-            });
-            debug_1._logInfo("Aftercompile and Persisting FileSet -----------------------------------------------------");
-            compiledSet
-                .forEach((cItem) => __awaiter(this, void 0, void 0, function* () {
+            }), _logException);
+            debug_1._logInfo("Aftercompile -----------------------------------------------------");
+            yield compiledSet
+                .forEachAsync((cItem) => __awaiter(this, void 0, void 0, function* () {
                 cItem.content = main_1.aftercompile(cItem.fn, cItem.content);
+            }));
+            debug_1._logInfo("Prepersisting and Persisting FileSet -----------------------------------------------------");
+            yield compiledSet
+                .forEachAsync((cItem) => __awaiter(this, void 0, void 0, function* () {
+                main_1.prepersist(cItem.fn, cItem.content);
                 switch (cItem.fn.cType.type) {
                     case "compilable":
                         if (cItem.content) {
@@ -98,10 +112,8 @@ function build(outputPhase) {
             }));
             yield audit_1.disposeDb(siteName);
         }));
-        yield Promise.all(promises);
         end(config);
     });
 }
-exports.build = build;
 ;
 //# sourceMappingURL=index.js.map

@@ -20,8 +20,10 @@ export type docFileAudit = baseDoc & {
   type: "fileinfo",
   _on: number;
   relPath: string;
+  url: string;
   action: "created" | "edited" | "deleted";
   version: number;
+  hash: string;
 };
 
 export type tBuildAudit = docBuildAudit & {
@@ -98,7 +100,9 @@ async function insertFileAudit(fn: tFileNaming, _on: number) {
       _on,
       action: lastAudit ? "edited" : "created",
       relPath: fn.relPath,
-      version: fn.stats.version
+      url: fn.www.url,
+      version: fn.stats.version,
+      hash: fn.www.hash || ""
     }, (err, doc) => {
       err ? rej(err) : res(doc);
     });

@@ -110,7 +110,7 @@ const mergeResx = {
   }
 }
 
-function mergeResxData(fn: tFileNaming, ctx: any, mR: {ext: string, keyProp: string}) {
+async function mergeResxData(fn: tFileNaming, ctx: any, mR: {ext: string, keyProp: string}) {
   const fnResx = IoResxManager.instance.fnItemByExt(
     mR.ext,
     fn_resx => fn_resx.src.path == fn.src.path && fn_resx.fileName == fn.fileName
@@ -118,16 +118,20 @@ function mergeResxData(fn: tFileNaming, ctx: any, mR: {ext: string, keyProp: str
   if (fnResx) {
     _logWarn("\t\t\t\tmerging content for", fn.src.fullPath, "from", fnResx.src.fullPath);
 
-    let cCtx = compileFile(fnResx, true);
+    let cCtx = await compileFile(fnResx, true);
     ctx[mR.keyProp] = lodash.merge(ctx[mR.keyProp] || {}, cCtx);
   }
 }
 
-function prepareRelatedResxDate(srcFullPathNoExt: string, ctx: any) {
+async function prepareRelatedResxDate(srcFullPathNoExt: string, ctx: any) {
   const fnRelated = IoResxManager.instance.fnItem(_fnItem => _fnItem.src.fullPathNoExt == srcFullPathNoExt);
   
-  mergeResxData(fnRelated, ctx, mergeResx.json);
-  mergeResxData(fnRelated, ctx, mergeResx.lang);
+  await Promise.all([
+    mergeResxData(fnRelated, ctx, mergeResx.json),
+    mergeResxData(fnRelated, ctx, mergeResx.lang)
+  ]);
+  //await mergeResxData(fnRelated, ctx, mergeResx.json);
+  //await mergeResxData(fnRelated, ctx, mergeResx.lang);
 
   ctx = prepareResxData(fnRelated, ctx);
 }
@@ -150,7 +154,7 @@ function prepareResxData(fn: tFileNaming, ctx = {}): any {
   return ctx;
 }
 
-function compile(fn: tFileNaming) {
+async function compile(fn: tFileNaming) {
   _logInfo("\tCompiling HBS"); //, fn.src.fullPath);
 
   const template = templateCache[fn.src.fullPath];
@@ -158,8 +162,10 @@ function compile(fn: tFileNaming) {
   if (template) {
     let ctx = prepareResxData(fn);
     
-    mergeResxData(fn, ctx, mergeResx.json);
-    mergeResxData(fn, ctx, mergeResx.lang);
+    await Promise.all([
+      mergeResxData(fn, ctx, mergeResx.json),
+      mergeResxData(fn, ctx, mergeResx.lang)
+    ]);
     
     ctx["links"] = {
       isPartial: fn.www.isPartial,

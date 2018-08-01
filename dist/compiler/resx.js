@@ -11,10 +11,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
 const fs_extra_1 = __importDefault(require("fs-extra"));
 const mkpath_1 = __importDefault(require("mkpath"));
-const path_1 = __importDefault(require("path"));
 const audit_1 = require("../libs/audit");
 const debug_1 = require("../libs/debug");
 //TODO: add this to compilers
@@ -74,7 +74,7 @@ function toFileNaming(siteName, src_fullPath, targetPath, outputPath, cType) {
             },
             www: {
                 isPartial: cType.isPartial,
-                url: "/" + encodeURI(path_1.default.relative(outPath, out_fullPathNoExt))
+                url: "/" + encodeURI(path_1.default.relative(outputPath, out_fullPath).replace(/\\/g, '/'))
             }
         };
         debug_1._log(tfnRes);

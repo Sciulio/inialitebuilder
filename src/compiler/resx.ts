@@ -1,7 +1,8 @@
+import path from 'path';
+import url from 'url';
 import fs from 'fs';
 import fse from 'fs-extra';
 import mkpath from 'mkpath';
-import path from 'path';
 import { fileLastAudit } from '../libs/audit';
 import { _log, _logInfo } from '../libs/debug';
 import { tCompileType } from './parser/base';
@@ -105,7 +106,7 @@ async function toFileNaming(siteName: string, src_fullPath: string, targetPath: 
     },
     www: {
       isPartial: cType.isPartial,
-      url: "/" + encodeURI(path.relative(outPath, out_fullPathNoExt))
+      url: "/" + encodeURI(path.relative(outputPath, out_fullPath).replace(/\\/g, '/'))
     }
   };
 

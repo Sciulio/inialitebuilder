@@ -1,11 +1,10 @@
 import path from 'path';
-import crypto from 'crypto';
 
 import { _log, _logSeparator, _logInfo, _logError } from "./libs/debug";
 import { getFilesRecusively } from "./libs/io";
 
-import { parseFile, precompileFile, compileFile, preparseFile, aftercompile } from './compiler/main';
-import { persistFile, copyFile } from './compiler/resx';
+import { parseFile, precompileFile, compileFile, preparseFile, aftercompile, prepersist } from './compiler/main';
+import { persistFile, copyFile, tFileNaming } from './compiler/resx';
 import { loadConfiguration, tConfig } from './libs/config';
 import { initDb, disposeDb } from './libs/audit';
 
@@ -39,11 +38,27 @@ export function doPhase(phaseName: string, siteName: string) {
 }
 
 export async function build(outputPhase: string) {
+  try {
+    return await _build(outputPhase);
+  } catch (e) {
+    _logError(e);
+  }
+}
+
+function _logException<T, W>(err: Error, item: T, idx: number): W {
+  _logError(idx, (item as any as tFileNaming).src ? (item as any as tFileNaming).src.fullPath : item, err);
+
+  return null as any;
+
+  // throw => to end execution
+}
+
+async function _build(outputPhase: string) {
   const config = start();
 
   //TODO: make this async
-  const promises = config.target.sites
-  .map(async siteName => {
+  await config.target.sites
+  .mapAsync(async siteName => {
     //CompilerManager.instance.building(siteName);
     await initDb(siteName);
 
@@ -58,10 +73,10 @@ export async function build(outputPhase: string) {
     _log(sourceFileSet);
 
     _logInfo("PreParsing FileSet -----------------------------------------------------");
-    const namedFileSet = await Promise.all(
-      sourceFileSet
-      .map(sourceFilePath => preparseFile(siteName, sourceFilePath, targetPath, outputPath))
-      //.map(async sourceFilePath => await preparseFile(siteName, sourceFilePath, targetPath, outputPath))
+    const namedFileSet = await sourceFileSet
+    .mapAsync(
+      async sourceFilePath => await preparseFile(siteName, sourceFilePath, targetPath, outputPath),
+      _logException as any
     );
 
     _logInfo("Parsing FileSet -----------------------------------------------------");
@@ -71,28 +86,30 @@ export async function build(outputPhase: string) {
     _logInfo("Precompile FileSet -----------------------------------------------------");
     namedFileSet
     .forEach(precompileFile);
-
+    
     //TODO: use streams where possible for compiled content
     _logInfo("Compile FileSet -----------------------------------------------------");
-    const compiledSet = namedFileSet
+    const compiledSet = await namedFileSet
     .filter(fn => fn.fileName[0] != '_')
-    .map(fn => {
-      const content = compileFile(fn) || "";
-      fn.www.hash = crypto
-      .createHash('md5')
-      .update(content.toString())
-      .digest("hex");
+    .mapAsync(async fn => {
+      let content = await compileFile(fn);
 
       return {
         fn,
-        content
+        content: await aftercompile(fn, content)
       };
+    }, _logException as any);
+
+    _logInfo("Aftercompile -----------------------------------------------------");
+    await compiledSet
+    .forEachAsync(async cItem => {
+      cItem.content = aftercompile(cItem.fn, cItem.content);
     });
 
-    _logInfo("Aftercompile and Persisting FileSet -----------------------------------------------------");
-    compiledSet
-    .forEach(async cItem => {
-      cItem.content = aftercompile(cItem.fn, cItem.content);
+    _logInfo("Prepersisting and Persisting FileSet -----------------------------------------------------");
+    await compiledSet
+    .forEachAsync(async cItem => {
+      prepersist(cItem.fn, cItem.content);
 
       switch (cItem.fn.cType.type) {
         case "compilable":
@@ -106,10 +123,9 @@ export async function build(outputPhase: string) {
         case "build-resx": break;
       }
     });
-    
+
     await disposeDb(siteName);
   });
-  await Promise.all(promises);
 
   end(config);
 };

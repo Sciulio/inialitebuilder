@@ -77,7 +77,9 @@ function insertFileAudit(fn, _on) {
                 _on,
                 action: lastAudit ? "edited" : "created",
                 relPath: fn.relPath,
-                version: fn.stats.version
+                url: fn.www.url,
+                version: fn.stats.version,
+                hash: fn.www.hash || ""
             }, (err, doc) => {
                 err ? rej(err) : res(doc);
             });

@@ -11,8 +11,10 @@ export declare type docFileAudit = baseDoc & {
     type: "fileinfo";
     _on: number;
     relPath: string;
+    url: string;
     action: "created" | "edited" | "deleted";
     version: number;
+    hash: string;
 };
 export declare type tBuildAudit = docBuildAudit & {};
 export declare type tFileAudit = docFileAudit & {

@@ -1,9 +1,11 @@
 import path from 'path';
+import crypto from 'crypto';
+import { Stream } from 'stream';
+
 import { _logError, _logInfo } from "../libs/debug";
 import { dynamolo } from '../libs/dynamolo';
 import { tCompilerExport, tCompileType } from './parser/base';
 import { IoResxManager, tFileNaming } from './resx';
-import { Stream } from 'stream';
 
 
 const parsersSet: { [ext: string]: tCompilerExport } = {};
@@ -67,7 +69,7 @@ function fnCtxMustBeCompiled(fn: tFileNaming): boolean {
   .some(relation => fnCtxMustBeCompiled(relation.fn));
 }
 
-export function compileFile(fn: tFileNaming, forceCompile: boolean = false) {
+export async function compileFile(fn: tFileNaming, forceCompile: boolean = false) {
   _logInfo(` COMPILING: "${fn.src.fullPath}"`);
 
   if (!forceCompile && !fnCtxMustBeCompiled(fn)) {
@@ -80,13 +82,13 @@ export function compileFile(fn: tFileNaming, forceCompile: boolean = false) {
 
   if (ext in parsersSet) {
     const parser = parsersSet[ext];
-    content = parser.compile(fn);
+    content = await parser.compile(fn);
   }
 
   return content;
 }
 
-export function aftercompile(fn: tFileNaming, content: string|Stream|null) {
+export function aftercompile(fn: tFileNaming, content: string|Stream|null) { //TODO: string|Stream
   const ext = fn.src.ext.substring(1);
   let aftercompiledContent: string|Stream|null = null;
 
@@ -96,4 +98,13 @@ export function aftercompile(fn: tFileNaming, content: string|Stream|null) {
   }
 
   return (aftercompiledContent || content || "").toString();
+}
+
+export function prepersist(fn: tFileNaming, content: string|Stream|null): void {
+  if (content) {
+    fn.www.hash = crypto
+    .createHash('md5')
+    .update(content.toString())
+    .digest("hex");
+  }
 }

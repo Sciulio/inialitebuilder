@@ -1,4 +1,12 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -91,18 +99,26 @@ const mergeResx = {
     }
 };
 function mergeResxData(fn, ctx, mR) {
-    const fnResx = resx_1.IoResxManager.instance.fnItemByExt(mR.ext, fn_resx => fn_resx.src.path == fn.src.path && fn_resx.fileName == fn.fileName);
-    if (fnResx) {
-        debug_1._logWarn("\t\t\t\tmerging content for", fn.src.fullPath, "from", fnResx.src.fullPath);
-        let cCtx = main_1.compileFile(fnResx, true);
-        ctx[mR.keyProp] = lodash_1.default.merge(ctx[mR.keyProp] || {}, cCtx);
-    }
+    return __awaiter(this, void 0, void 0, function* () {
+        const fnResx = resx_1.IoResxManager.instance.fnItemByExt(mR.ext, fn_resx => fn_resx.src.path == fn.src.path && fn_resx.fileName == fn.fileName);
+        if (fnResx) {
+            debug_1._logWarn("\t\t\t\tmerging content for", fn.src.fullPath, "from", fnResx.src.fullPath);
+            let cCtx = yield main_1.compileFile(fnResx, true);
+            ctx[mR.keyProp] = lodash_1.default.merge(ctx[mR.keyProp] || {}, cCtx);
+        }
+    });
 }
 function prepareRelatedResxDate(srcFullPathNoExt, ctx) {
-    const fnRelated = resx_1.IoResxManager.instance.fnItem(_fnItem => _fnItem.src.fullPathNoExt == srcFullPathNoExt);
-    mergeResxData(fnRelated, ctx, mergeResx.json);
-    mergeResxData(fnRelated, ctx, mergeResx.lang);
-    ctx = prepareResxData(fnRelated, ctx);
+    return __awaiter(this, void 0, void 0, function* () {
+        const fnRelated = resx_1.IoResxManager.instance.fnItem(_fnItem => _fnItem.src.fullPathNoExt == srcFullPathNoExt);
+        yield Promise.all([
+            mergeResxData(fnRelated, ctx, mergeResx.json),
+            mergeResxData(fnRelated, ctx, mergeResx.lang)
+        ]);
+        //await mergeResxData(fnRelated, ctx, mergeResx.json);
+        //await mergeResxData(fnRelated, ctx, mergeResx.lang);
+        ctx = prepareResxData(fnRelated, ctx);
+    });
 }
 function prepareResxData(fn, ctx = {}) {
     const fnRelLayout = fn.relations.filter(rel => rel.type == "layout")[0];
@@ -119,19 +135,23 @@ function prepareResxData(fn, ctx = {}) {
     return ctx;
 }
 function compile(fn) {
-    debug_1._logInfo("\tCompiling HBS"); //, fn.src.fullPath);
-    const template = templateCache[fn.src.fullPath];
-    if (template) {
-        let ctx = prepareResxData(fn);
-        mergeResxData(fn, ctx, mergeResx.json);
-        mergeResxData(fn, ctx, mergeResx.lang);
-        ctx["links"] = {
-            isPartial: fn.www.isPartial,
-            url: fn.www.url
-        };
-        return template(ctx);
-    }
-    return null;
+    return __awaiter(this, void 0, void 0, function* () {
+        debug_1._logInfo("\tCompiling HBS"); //, fn.src.fullPath);
+        const template = templateCache[fn.src.fullPath];
+        if (template) {
+            let ctx = prepareResxData(fn);
+            yield Promise.all([
+                mergeResxData(fn, ctx, mergeResx.json),
+                mergeResxData(fn, ctx, mergeResx.lang)
+            ]);
+            ctx["links"] = {
+                isPartial: fn.www.isPartial,
+                url: fn.www.url
+            };
+            return template(ctx);
+        }
+        return null;
+    });
 }
 function aftercompile(fn, content) {
     //TODO: load config

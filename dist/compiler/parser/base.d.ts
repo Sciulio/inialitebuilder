@@ -18,7 +18,7 @@ export declare type tCompilerExport = {
     preparse: (sourceFilePath: string) => tCompileType;
     parse: (fn: tFileNaming) => void;
     precompile(fn: tFileNaming): void;
-    compile: (fn: tFileNaming) => string;
+    compile: (fn: tFileNaming) => Promise<string>;
     aftercompile: (fn: tFileNaming, content: string | Stream | null) => string;
 };
 export declare const NoOp: (...args: any[]) => any;

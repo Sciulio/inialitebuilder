@@ -26,7 +26,7 @@ function parse(fn: tFileNaming) {
   parsedCache[fn.src.fullPath] = data;
 }
 
-function compile(fn: tFileNaming, ctx: any) {
+async function compile(fn: tFileNaming, ctx: any) {
   _logInfo("\tCompiling JSON"); //, fn.src.fullPath);
 
   return parsedCache[fn.src.fullPath];

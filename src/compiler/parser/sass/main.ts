@@ -29,7 +29,7 @@ function parse(fn: tFileNaming) {
   parsedCache[fn.src.fullPath] = template;
 }
 
-function compile(fn: tFileNaming) {
+async function compile(fn: tFileNaming) {
   _logInfo("\tCompiling SASS/SCSS");
 
   return parsedCache[fn.src.fullPath].css.toString();

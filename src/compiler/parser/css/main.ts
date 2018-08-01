@@ -25,7 +25,7 @@ function parse(fn: tFileNaming) {
   parsedCache[fn.src.fullPath] = content;
 }
 
-function compile(fn: tFileNaming) {
+async function compile(fn: tFileNaming) {
   _logInfo("\tCompiling SASS/SCSS");
 
   return parsedCache[fn.src.fullPath].toString();
