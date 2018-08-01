@@ -1,8 +1,21 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
+const os_1 = __importDefault(require("os"));
 function _log(..._args) {
     console.log.apply(console, _args.reduce((res, curr) => {
-        if (typeof curr == "string") {
+        if (curr instanceof Error) {
+            if (curr.stack) {
+                res.push(curr.stack);
+            }
+            else {
+                res.push(curr.name + os_1.default.EOL + "\t");
+                res.push(curr.message + os_1.default.EOL + "\t");
+            }
+        }
+        else if (typeof curr == "string") {
             res.push(curr);
         }
         else {

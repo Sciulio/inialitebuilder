@@ -1,6 +1,16 @@
+import os from 'os';
+
+
 export function _log(..._args: any[]) {
   console.log.apply(console, _args.reduce((res: any[], curr: any) => {
-    if (typeof curr == "string") {
+    if (curr instanceof Error) {
+      if (curr.stack) {
+        res.push(curr.stack);
+      } else {
+        res.push(curr.name + os.EOL + "\t");
+        res.push(curr.message + os.EOL + "\t");
+      }
+    } else if (typeof curr == "string") {
       res.push(curr);
     } else {
       res.push(JSON.stringify(curr, null, 4));
