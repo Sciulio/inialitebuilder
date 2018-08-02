@@ -16,6 +16,7 @@ export declare type tFileNaming = {
         needsBuild: boolean;
         needsNewVersion: boolean;
         version: number;
+        size?: number;
     };
     relations: {
         type: "layout" | "partial" | "build-resx";

@@ -44,7 +44,7 @@ function toFileNaming(siteName, src_fullPath, targetPath, outputPath, cType) {
         const needsNewVersion = !!needsBuildAndVersion;
         const fileAudit = yield audit_1.fileLastAudit(siteName, src_fullPath);
         const version = fileAudit ? fileAudit.version + (needsNewVersion ? 1 : 0) : 0;
-        debug_1._log(src_fullPath, targetPath, outputPath, outPath);
+        //_log(src_fullPath, targetPath, outputPath, outPath)
         const tfnRes = {
             siteName,
             fileName,
@@ -77,7 +77,6 @@ function toFileNaming(siteName, src_fullPath, targetPath, outputPath, cType) {
                 url: "/" + encodeURI(path_1.default.relative(outputPath, out_fullPath).replace(/\\/g, '/'))
             }
         };
-        debug_1._log(tfnRes);
         return tfnRes;
     });
 }

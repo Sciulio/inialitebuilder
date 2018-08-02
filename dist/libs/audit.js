@@ -16,7 +16,6 @@ const fs_extra_1 = __importDefault(require("fs-extra"));
 const nedb_1 = __importDefault(require("nedb"));
 const resx_1 = require("../compiler/resx");
 const config_1 = require("./config");
-require("./async");
 const config = config_1.loadConfiguration();
 const dbs = {};
 function initDb(siteName) {
@@ -52,6 +51,7 @@ function disposeDb(siteName) {
         });
         yield (yield Promise.all(yield resx_1.IoResxManager.instance.items
             .filterAsync((fn) => __awaiter(this, void 0, void 0, function* () { return fn.stats.needsNewVersion || !(yield fileLastAudit(siteName, fn.relPath)); }))))
+            .filter(fn => fn.cType.type == "site-resx" || fn.cType.type == "compilable" && !fn.cType.isPartial)
             .forEachAsync((fn) => __awaiter(this, void 0, void 0, function* () { yield insertFileAudit(fn, dbWrapper.on); }));
         //TODO save file with files hashes for ws and etags
         const wsItems = yield resx_1.IoResxManager.instance.items
@@ -76,10 +76,11 @@ function insertFileAudit(fn, _on) {
                 type: "fileinfo",
                 _on,
                 action: lastAudit ? "edited" : "created",
-                relPath: fn.relPath,
+                path: fn.relPath,
                 url: fn.www.url,
                 version: fn.stats.version,
-                hash: fn.www.hash || ""
+                hash: fn.www.hash || "",
+                size: fn.stats.size || 0
             }, (err, doc) => {
                 err ? rej(err) : res(doc);
             });

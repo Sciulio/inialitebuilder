@@ -1,4 +1,3 @@
-import "./async";
 export declare type baseDoc = {
     _id?: string;
 };
@@ -10,11 +9,12 @@ export declare type docBuildAudit = baseDoc & {
 export declare type docFileAudit = baseDoc & {
     type: "fileinfo";
     _on: number;
-    relPath: string;
+    path: string;
     url: string;
     action: "created" | "edited" | "deleted";
     version: number;
     hash: string;
+    size: number;
 };
 export declare type tBuildAudit = docBuildAudit & {};
 export declare type tFileAudit = docFileAudit & {

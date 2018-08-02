@@ -3,7 +3,6 @@ import fse from 'fs-extra';
 import Datastore from 'nedb';
 import { IoResxManager, tFileNaming } from '../compiler/resx';
 import { loadConfiguration } from './config';
-import "./async";
 
 
 const config = loadConfiguration();
@@ -19,11 +18,12 @@ export type docBuildAudit = baseDoc & {
 export type docFileAudit = baseDoc & {
   type: "fileinfo",
   _on: number;
-  relPath: string;
+  path: string;
   url: string;
   action: "created" | "edited" | "deleted";
   version: number;
   hash: string;
+  size: number;
 };
 
 export type tBuildAudit = docBuildAudit & {
@@ -71,6 +71,7 @@ export async function disposeDb(siteName: string) {
     await IoResxManager.instance.items
     .filterAsync(async fn => fn.stats.needsNewVersion || !(await fileLastAudit(siteName, fn.relPath)))
   ))
+  .filter(fn => fn.cType.type == "site-resx" || fn.cType.type == "compilable" && !fn.cType.isPartial)
   .forEachAsync(async fn => { await insertFileAudit(fn, dbWrapper.on); });
   
   //TODO save file with files hashes for ws and etags
@@ -99,10 +100,11 @@ async function insertFileAudit(fn: tFileNaming, _on: number) {
       type: "fileinfo",
       _on,
       action: lastAudit ? "edited" : "created",
-      relPath: fn.relPath,
+      path: fn.relPath,
       url: fn.www.url,
       version: fn.stats.version,
-      hash: fn.www.hash || ""
+      hash: fn.www.hash || "",
+      size: fn.stats.size || 0
     }, (err, doc) => {
       err ? rej(err) : res(doc);
     });

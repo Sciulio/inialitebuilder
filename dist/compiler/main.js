@@ -13,6 +13,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const path_1 = __importDefault(require("path"));
 const crypto_1 = __importDefault(require("crypto"));
+const fs_extra_1 = __importDefault(require("fs-extra"));
 const debug_1 = require("../libs/debug");
 const dynamolo_1 = require("../libs/dynamolo");
 const resx_1 = require("./resx");
@@ -91,12 +92,54 @@ function aftercompile(fn, content) {
 }
 exports.aftercompile = aftercompile;
 function prepersist(fn, content) {
-    if (content) {
-        fn.www.hash = crypto_1.default
-            .createHash('md5')
-            .update(content.toString())
-            .digest("hex");
-    }
+    return __awaiter(this, void 0, void 0, function* () {
+        /*
+        switch (fn.cType.type) {
+          case "build-resx": break;
+          case "site-resx":
+          case "compilable":
+            //const content = await fse.readFile(fn.out.fullPath);
+            if (content) {
+              fn.www.hash = crypto
+              .createHash('md5')
+              .update(content.toString())
+              .digest("hex");
+            }
+            break;
+        }*/
+    });
 }
 exports.prepersist = prepersist;
+function persist(fn, content) {
+    return __awaiter(this, void 0, void 0, function* () {
+        switch (fn.cType.type) {
+            case "compilable":
+                if (content && !fn.cType.isPartial) {
+                    //TODO: accept Stream
+                    yield resx_1.persistFile(fn, content.toString());
+                }
+                break;
+            case "site-resx":
+                yield resx_1.copyFile(fn);
+                break;
+            case "build-resx": break;
+        }
+    });
+}
+exports.persist = persist;
+function afterpersist(fn) {
+    return __awaiter(this, void 0, void 0, function* () {
+        //TODO: improve this check
+        if (fn.cType.type == "site-resx" || fn.cType.type == "compilable" && !fn.cType.isPartial) {
+            const stats = yield fs_extra_1.default.stat(fn.out.fullPath);
+            fn.stats.size = stats.size;
+            const content = yield fs_extra_1.default.readFile(fn.out.fullPath);
+            fn.www.hash = crypto_1.default
+                .createHash('md5')
+                .update(content)
+                .digest("hex");
+        }
+    });
+}
+exports.afterpersist = afterpersist;
 //# sourceMappingURL=main.js.map

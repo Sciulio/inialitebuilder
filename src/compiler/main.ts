@@ -2,10 +2,12 @@ import path from 'path';
 import crypto from 'crypto';
 import { Stream } from 'stream';
 
+import fse from 'fs-extra';
+
 import { _logError, _logInfo } from "../libs/debug";
 import { dynamolo } from '../libs/dynamolo';
 import { tCompilerExport, tCompileType } from './parser/base';
-import { IoResxManager, tFileNaming } from './resx';
+import { IoResxManager, tFileNaming, persistFile, copyFile } from './resx';
 
 
 const parsersSet: { [ext: string]: tCompilerExport } = {};
@@ -100,11 +102,46 @@ export function aftercompile(fn: tFileNaming, content: string|Stream|null) { //T
   return (aftercompiledContent || content || "").toString();
 }
 
-export function prepersist(fn: tFileNaming, content: string|Stream|null): void {
-  if (content) {
+export async function prepersist(fn: tFileNaming, content: string|Stream|null): Promise<void> {
+  /*
+  switch (fn.cType.type) {
+    case "build-resx": break;
+    case "site-resx":
+    case "compilable":
+      //const content = await fse.readFile(fn.out.fullPath);
+      if (content) {
+        fn.www.hash = crypto
+        .createHash('md5')
+        .update(content.toString())
+        .digest("hex");
+      }
+      break;
+  }*/
+}
+export async function persist(fn: tFileNaming, content: string|Stream|null): Promise<void> {
+  switch (fn.cType.type) {
+    case "compilable":
+      if (content && !fn.cType.isPartial) {
+        //TODO: accept Stream
+        await persistFile(fn, content.toString());
+      }
+      break;
+    case "site-resx":
+      await copyFile(fn);
+      break;
+    case "build-resx": break;
+  }
+}
+export async function afterpersist(fn: tFileNaming): Promise<void> {
+  //TODO: improve this check
+  if (fn.cType.type == "site-resx" || fn.cType.type == "compilable" && !fn.cType.isPartial) {
+    const stats = await fse.stat(fn.out.fullPath);
+    fn.stats.size = stats.size;
+
+    const content = await fse.readFile(fn.out.fullPath);
     fn.www.hash = crypto
     .createHash('md5')
-    .update(content.toString())
+    .update(content)
     .digest("hex");
   }
 }

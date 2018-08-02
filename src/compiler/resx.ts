@@ -1,10 +1,9 @@
 import path from 'path';
-import url from 'url';
 import fs from 'fs';
 import fse from 'fs-extra';
 import mkpath from 'mkpath';
 import { fileLastAudit } from '../libs/audit';
-import { _log, _logInfo } from '../libs/debug';
+import { _logInfo } from '../libs/debug';
 import { tCompileType } from './parser/base';
 
 
@@ -25,6 +24,7 @@ export type tFileNaming = {
     needsBuild: boolean;
     needsNewVersion: boolean;
     version: number;
+    size?: number;
   };
   relations: {
     type: "layout" | "partial" | "build-resx",
@@ -75,7 +75,7 @@ async function toFileNaming(siteName: string, src_fullPath: string, targetPath: 
   const fileAudit = await fileLastAudit(siteName, src_fullPath);
   const version = fileAudit ? fileAudit.version + (needsNewVersion ? 1 : 0) : 0;
 
-  _log(src_fullPath, targetPath, outputPath, outPath)
+  //_log(src_fullPath, targetPath, outputPath, outPath)
 
   const tfnRes: tFileNaming = {
     siteName,
@@ -109,8 +109,6 @@ async function toFileNaming(siteName: string, src_fullPath: string, targetPath: 
       url: "/" + encodeURI(path.relative(outputPath, out_fullPath).replace(/\\/g, '/'))
     }
   };
-
-  _log(tfnRes)
 
   return tfnRes;
 }

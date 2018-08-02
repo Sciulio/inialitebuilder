@@ -1,10 +1,12 @@
 import path from 'path';
 
+import 'async-extensions';
+
 import { _log, _logSeparator, _logInfo, _logError } from "./libs/debug";
 import { getFilesRecusively } from "./libs/io";
 
-import { parseFile, precompileFile, compileFile, preparseFile, aftercompile, prepersist } from './compiler/main';
-import { persistFile, copyFile, tFileNaming } from './compiler/resx';
+import { parseFile, precompileFile, compileFile, preparseFile, aftercompile, prepersist, afterpersist, persist } from './compiler/main';
+import { tFileNaming } from './compiler/resx';
 import { loadConfiguration, tConfig } from './libs/config';
 import { initDb, disposeDb } from './libs/audit';
 
@@ -109,19 +111,11 @@ async function _build(outputPhase: string) {
     _logInfo("Prepersisting and Persisting FileSet -----------------------------------------------------");
     await compiledSet
     .forEachAsync(async cItem => {
-      prepersist(cItem.fn, cItem.content);
+      await prepersist(cItem.fn, cItem.content);
 
-      switch (cItem.fn.cType.type) {
-        case "compilable":
-          if (cItem.content) {
-            await persistFile(cItem.fn, cItem.content);
-          }
-          break;
-        case "site-resx":
-          await copyFile(cItem.fn);
-          break;
-        case "build-resx": break;
-      }
+      await persist(cItem.fn, cItem.content);
+
+      await afterpersist(cItem.fn);
     });
 
     await disposeDb(siteName);

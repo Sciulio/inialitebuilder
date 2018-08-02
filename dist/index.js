@@ -12,10 +12,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const path_1 = __importDefault(require("path"));
+require("async-extensions");
 const debug_1 = require("./libs/debug");
 const io_1 = require("./libs/io");
 const main_1 = require("./compiler/main");
-const resx_1 = require("./compiler/resx");
 const config_1 = require("./libs/config");
 const audit_1 = require("./libs/audit");
 function start() {
@@ -97,18 +97,9 @@ function _build(outputPhase) {
             debug_1._logInfo("Prepersisting and Persisting FileSet -----------------------------------------------------");
             yield compiledSet
                 .forEachAsync((cItem) => __awaiter(this, void 0, void 0, function* () {
-                main_1.prepersist(cItem.fn, cItem.content);
-                switch (cItem.fn.cType.type) {
-                    case "compilable":
-                        if (cItem.content) {
-                            yield resx_1.persistFile(cItem.fn, cItem.content);
-                        }
-                        break;
-                    case "site-resx":
-                        yield resx_1.copyFile(cItem.fn);
-                        break;
-                    case "build-resx": break;
-                }
+                yield main_1.prepersist(cItem.fn, cItem.content);
+                yield main_1.persist(cItem.fn, cItem.content);
+                yield main_1.afterpersist(cItem.fn);
             }));
             yield audit_1.disposeDb(siteName);
         }));
