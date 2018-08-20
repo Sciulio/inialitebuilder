@@ -13,12 +13,13 @@ export declare type tCompileType = {
     isPartial: boolean;
     type: "build-resx" | "site-resx" | "compilable";
 };
+export declare type tCompilerExportContent = string | Stream | {} | (string | Stream | {})[] | null;
 export declare type tCompilerExport = {
     extension: string | string[];
     preparse: (sourceFilePath: string) => tCompileType;
     parse: (fn: tFileNaming) => void;
     precompile(fn: tFileNaming): void;
-    compile: (fn: tFileNaming) => Promise<string>;
-    aftercompile: (fn: tFileNaming, content: string | Stream | null) => string;
+    compile: (fn: tFileNaming) => Promise<tCompilerExportContent>;
+    aftercompile: (fn: tFileNaming, content: tCompilerExportContent) => tCompilerExportContent;
 };
 export declare const NoOp: (...args: any[]) => any;

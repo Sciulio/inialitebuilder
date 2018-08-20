@@ -17,6 +17,7 @@ const fs_extra_1 = __importDefault(require("fs-extra"));
 const debug_1 = require("../libs/debug");
 const dynamolo_1 = require("../libs/dynamolo");
 const resx_1 = require("./resx");
+const __1 = require("..");
 const parsersSet = {};
 dynamolo_1.dynamolo(path_1.default.join(__dirname, './parser/'), impCompiler => Array.isArray(impCompiler.extension) ?
     impCompiler.extension.forEach(ext => parsersSet[ext] = impCompiler) :
@@ -72,26 +73,25 @@ function compileFile(fn, forceCompile = false) {
             return null;
         }
         const ext = fn.src.ext.substring(1);
-        let content = null;
         if (ext in parsersSet) {
             const parser = parsersSet[ext];
-            content = yield parser.compile(fn);
+            return yield parser.compile(fn);
         }
-        return content;
+        return null;
     });
 }
 exports.compileFile = compileFile;
-function aftercompile(fn, content) {
+function aftercompile(fn, cExpContent) {
     const ext = fn.src.ext.substring(1);
-    let aftercompiledContent = null;
+    let cExpContentAfter = null;
     if (ext in parsersSet) {
         const parser = parsersSet[ext];
-        aftercompiledContent = parser.aftercompile(fn, content);
+        cExpContentAfter = parser.aftercompile(fn, cExpContent);
     }
-    return (aftercompiledContent || content || "").toString();
+    return cExpContentAfter || cExpContent;
 }
 exports.aftercompile = aftercompile;
-function prepersist(fn, content) {
+function prepersist(fn, cExpContent) {
     return __awaiter(this, void 0, void 0, function* () {
         /*
         switch (fn.cType.type) {
@@ -110,34 +110,48 @@ function prepersist(fn, content) {
     });
 }
 exports.prepersist = prepersist;
-function persist(fn, content) {
+function persist(fn, cExpContent) {
     return __awaiter(this, void 0, void 0, function* () {
         switch (fn.cType.type) {
             case "compilable":
-                if (content && !fn.cType.isPartial) {
+                if (cExpContent && !fn.cType.isPartial) {
                     //TODO: accept Stream
-                    yield resx_1.persistFile(fn, content.toString());
+                    yield resx_1.persistCompilerExportContent(fn, cExpContent);
                 }
                 break;
             case "site-resx":
-                yield resx_1.copyFile(fn);
+                yield resx_1.copyCompilerExportContent(fn);
                 break;
             case "build-resx": break;
         }
     });
 }
 exports.persist = persist;
+function _afterpersist(fn, locale) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const fileFullPath = locale ? resx_1.multiLanguageFileNameStrategy(fn.out.fullPath, locale) : fn.out.fullPath;
+        const content = yield fs_extra_1.default.readFile(fileFullPath);
+        fn.www.hash = crypto_1.default
+            .createHash('md5')
+            .update(content)
+            .digest("hex");
+    });
+}
 function afterpersist(fn) {
     return __awaiter(this, void 0, void 0, function* () {
         //TODO: improve this check
         if (fn.cType.type == "site-resx" || fn.cType.type == "compilable" && !fn.cType.isPartial) {
             const stats = yield fs_extra_1.default.stat(fn.out.fullPath);
             fn.stats.size = stats.size;
-            const content = yield fs_extra_1.default.readFile(fn.out.fullPath);
-            fn.www.hash = crypto_1.default
-                .createHash('md5')
-                .update(content)
-                .digest("hex");
+            if (fn.www.has[resx_1.oMergeResx.lang.keyProp]) {
+                yield __1.currentBuildingContext().siteConfig.locale
+                    .forEachAsync((locale) => __awaiter(this, void 0, void 0, function* () {
+                    yield _afterpersist(fn, locale);
+                }));
+            }
+            else {
+                yield _afterpersist(fn);
+            }
         }
     });
 }

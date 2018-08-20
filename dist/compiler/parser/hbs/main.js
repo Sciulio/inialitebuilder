@@ -20,6 +20,7 @@ require("./helpers/main");
 const html_minifier_1 = require("html-minifier");
 const resx_1 = require("../../resx");
 const main_1 = require("../../main");
+const __1 = require("../../..");
 var layouts = require('handlebars-layouts');
 handlebars_1.default.registerHelper(layouts(handlebars_1.default));
 exports.parsers = {
@@ -88,19 +89,10 @@ function precompile(fn) {
         templateCache[fn.src.fullPath] = template;
     }
 }
-const mergeResx = {
-    json: {
-        ext: "json",
-        keyProp: "data"
-    },
-    lang: {
-        ext: "lang",
-        keyProp: "locale"
-    }
-};
 function mergeResxData(fn, ctx, mR) {
     return __awaiter(this, void 0, void 0, function* () {
         const fnResx = resx_1.IoResxManager.instance.fnItemByExt(mR.ext, fn_resx => fn_resx.src.path == fn.src.path && fn_resx.fileName == fn.fileName);
+        fn.www.has[mR.keyProp] = !!fn.www.has[mR.keyProp] || !!fnResx;
         if (fnResx) {
             debug_1._logWarn("\t\t\t\tmerging content for", fn.src.fullPath, "from", fnResx.src.fullPath);
             let cCtx = yield main_1.compileFile(fnResx, true);
@@ -112,11 +104,9 @@ function prepareRelatedResxDate(srcFullPathNoExt, ctx) {
     return __awaiter(this, void 0, void 0, function* () {
         const fnRelated = resx_1.IoResxManager.instance.fnItem(_fnItem => _fnItem.src.fullPathNoExt == srcFullPathNoExt);
         yield Promise.all([
-            mergeResxData(fnRelated, ctx, mergeResx.json),
-            mergeResxData(fnRelated, ctx, mergeResx.lang)
+            mergeResxData(fnRelated, ctx, resx_1.oMergeResx.json),
+            mergeResxData(fnRelated, ctx, resx_1.oMergeResx.lang)
         ]);
-        //await mergeResxData(fnRelated, ctx, mergeResx.json);
-        //await mergeResxData(fnRelated, ctx, mergeResx.lang);
         ctx = prepareResxData(fnRelated, ctx);
     });
 }
@@ -134,6 +124,12 @@ function prepareResxData(fn, ctx = {}) {
     });
     return ctx;
 }
+function mergeLinkData(fn, ctx) {
+    ctx["links"] = {
+        isPartial: fn.www.isPartial,
+        url: fn.www.url
+    };
+}
 function compile(fn) {
     return __awaiter(this, void 0, void 0, function* () {
         debug_1._logInfo("\tCompiling HBS"); //, fn.src.fullPath);
@@ -141,26 +137,39 @@ function compile(fn) {
         if (template) {
             let ctx = prepareResxData(fn);
             yield Promise.all([
-                mergeResxData(fn, ctx, mergeResx.json),
-                mergeResxData(fn, ctx, mergeResx.lang)
+                mergeResxData(fn, ctx, resx_1.oMergeResx.json),
+                mergeResxData(fn, ctx, resx_1.oMergeResx.lang)
             ]);
-            ctx["links"] = {
-                isPartial: fn.www.isPartial,
-                url: fn.www.url
-            };
-            return template(ctx);
+            mergeLinkData(fn, ctx);
+            const bCtx = __1.currentBuildingContext();
+            const res = bCtx.siteConfig.locale
+                .map(locale => {
+                bCtx.data[resx_1.oMergeResx.lang.keyProp] = locale;
+                return template(ctx);
+            });
+            delete bCtx.data[resx_1.oMergeResx.lang.keyProp];
+            return res;
         }
         return null;
     });
 }
-function aftercompile(fn, content) {
-    //TODO: load config
+function _aftercompile(content) {
     return html_minifier_1.minify(content, {
         collapseWhitespace: true,
         conservativeCollapse: true,
         preserveLineBreaks: true,
         removeComments: true
     });
+}
+function aftercompile(fn, content) {
+    //TODO: load config
+    if (!content) {
+        return null;
+    }
+    if (Array.isArray(content)) {
+        return content.map(content => _aftercompile(content.toString()));
+    }
+    return _aftercompile(content.toString());
 }
 exports.default = {
     extension: "hbs",

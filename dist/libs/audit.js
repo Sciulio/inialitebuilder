@@ -69,7 +69,7 @@ function disposeDb(siteName) {
 exports.disposeDb = disposeDb;
 function insertFileAudit(fn, _on) {
     return __awaiter(this, void 0, void 0, function* () {
-        var db = dbs[fn.siteName].db;
+        const db = dbs[fn.siteName].db;
         const lastAudit = yield fileLastAudit(fn.siteName, fn.src.fullPath);
         return new Promise((res, rej) => {
             db.insert({
@@ -80,7 +80,8 @@ function insertFileAudit(fn, _on) {
                 url: fn.www.url,
                 version: fn.stats.version,
                 hash: fn.www.hash || "",
-                size: fn.stats.size || 0
+                size: fn.stats.size || 0,
+                has: fn.www.has
             }, (err, doc) => {
                 err ? rej(err) : res(doc);
             });

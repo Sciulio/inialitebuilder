@@ -18,14 +18,16 @@ export type tCompileType = {
   type: "build-resx" | "site-resx" | "compilable";
   //persist: "persist" | "copy" | false;
 };
+export type tCompilerExportContent = string|Stream|{}|(string|Stream|{})[]|null;
+//export type tCompilerExportContent = (string|Stream|{})[];
 export type tCompilerExport = {
   extension: string|string[];
   //persist: boolean;
   preparse: (sourceFilePath: string) => tCompileType;
   parse: (fn: tFileNaming) => void;
   precompile(fn: tFileNaming): void;
-  compile: (fn: tFileNaming) => Promise<string>;
-  aftercompile: (fn: tFileNaming, content: string|Stream|null) => string;
+  compile: (fn: tFileNaming) => Promise<tCompilerExportContent>;
+  aftercompile: (fn: tFileNaming, content: tCompilerExportContent) => tCompilerExportContent;
 }
 
 export const NoOp = (...args: any[]) => null as any;

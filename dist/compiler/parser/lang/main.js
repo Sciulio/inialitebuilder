@@ -34,7 +34,7 @@ function parse(fn) {
 function compile(fn, ctx) {
     return __awaiter(this, void 0, void 0, function* () {
         debug_1._logInfo("\tCompiling LANG", fn.src.fullPath);
-        return parsedCache[fn.src.fullPath];
+        return Promise.resolve(parsedCache[fn.src.fullPath]);
     });
 }
 exports.default = {

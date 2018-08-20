@@ -15,6 +15,9 @@ export declare type docFileAudit = baseDoc & {
     version: number;
     hash: string;
     size: number;
+    has: {
+        [keyProp: string]: boolean;
+    };
 };
 export declare type tBuildAudit = docBuildAudit & {};
 export declare type tFileAudit = docFileAudit & {

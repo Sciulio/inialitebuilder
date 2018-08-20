@@ -2,9 +2,13 @@ import fs from 'fs';
 
 import { _logInfo } from "../../../libs/debug";
 import { tFileNaming } from '../../resx';
-import { NoOp, tCompilerExport, tCompileType } from '../base';
+import { NoOp, tCompilerExport, tCompileType, tCompilerExportContent } from '../base';
 import CleanCss from 'clean-css';
 
+
+const ccss = new CleanCss({
+  inliner: true,
+});
 
 const parsedCache: {[srcFullPath: string]: string} = {};
 
@@ -31,11 +35,15 @@ async function compile(fn: tFileNaming) {
   return parsedCache[fn.src.fullPath].toString();
 }
 
-const ccss = new CleanCss({
-  inliner: true,
-});
-function aftercompile(fn: tFileNaming, content: string) {
-  return ccss.minify(content).styles;
+function aftercompile(fn: tFileNaming, cExpContent: tCompilerExportContent) {
+  if (!cExpContent) {
+    return cExpContent;
+  }
+  if (Array.isArray(cExpContent)) {
+    return cExpContent
+    .map(content => ccss.minify(content).styles);
+  }
+  return ccss.minify(cExpContent).styles;
 }
 
 export default {

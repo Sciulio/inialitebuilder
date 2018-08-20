@@ -1,4 +1,14 @@
-import { tCompileType } from './parser/base';
+import { tCompileType, tCompilerExportContent } from './parser/base';
+export declare const oMergeResx: {
+    json: {
+        ext: string;
+        keyProp: string;
+    };
+    lang: {
+        ext: string;
+        keyProp: string;
+    };
+};
 export declare type tFileNamingInfo = {
     fileName: string;
     ext: string;
@@ -28,10 +38,14 @@ export declare type tFileNaming = {
         isPartial: boolean;
         url: string;
         hash?: string;
+        has: {
+            [key: string]: boolean;
+        };
     };
 };
-export declare function persistFile(fn: tFileNaming, content: string): Promise<void>;
-export declare function copyFile(fn: tFileNaming): Promise<void>;
+export declare function multiLanguageFileNameStrategy(fullPath: string, locale: string): string;
+export declare function persistCompilerExportContent(fn: tFileNaming, cExpcExpContent: tCompilerExportContent): Promise<void>;
+export declare function copyCompilerExportContent(fn: tFileNaming): Promise<void>;
 export declare function toRootRelPath(fn: tFileNaming, relPath: string): string;
 export declare class IoResxManager {
     items: tFileNaming[];

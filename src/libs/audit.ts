@@ -24,6 +24,7 @@ export type docFileAudit = baseDoc & {
   version: number;
   hash: string;
   size: number;
+  has: {[keyProp: string]: boolean};
 };
 
 export type tBuildAudit = docBuildAudit & {
@@ -91,8 +92,7 @@ export async function disposeDb(siteName: string) {
 }
 
 async function insertFileAudit(fn: tFileNaming, _on: number) {
-  var db = dbs[fn.siteName].db;
-
+  const db = dbs[fn.siteName].db;
   const lastAudit = await fileLastAudit(fn.siteName, fn.src.fullPath);
 
   return new Promise<docFileAudit>((res, rej) => {
@@ -104,7 +104,8 @@ async function insertFileAudit(fn: tFileNaming, _on: number) {
       url: fn.www.url,
       version: fn.stats.version,
       hash: fn.www.hash || "",
-      size: fn.stats.size || 0
+      size: fn.stats.size || 0,
+      has: fn.www.has
     }, (err, doc) => {
       err ? rej(err) : res(doc);
     });

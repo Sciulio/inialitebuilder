@@ -6,8 +6,9 @@ import fse from 'fs-extra';
 
 import { _logError, _logInfo } from "../libs/debug";
 import { dynamolo } from '../libs/dynamolo';
-import { tCompilerExport, tCompileType } from './parser/base';
-import { IoResxManager, tFileNaming, persistFile, copyFile } from './resx';
+import { tCompilerExport, tCompileType, tCompilerExportContent } from './parser/base';
+import { IoResxManager, tFileNaming, persistCompilerExportContent, copyCompilerExportContent, oMergeResx, multiLanguageFileNameStrategy } from './resx';
+import { currentBuildingContext } from '..';
 
 
 const parsersSet: { [ext: string]: tCompilerExport } = {};
@@ -66,7 +67,7 @@ function fnCtxMustBeCompiled(fn: tFileNaming): boolean {
   }
 
   //TODO: check all dependancies (lang, json, ... etc)
-
+  
   return fn.relations && fn.relations
   .some(relation => fnCtxMustBeCompiled(relation.fn));
 }
@@ -80,29 +81,28 @@ export async function compileFile(fn: tFileNaming, forceCompile: boolean = false
   }
 
   const ext = fn.src.ext.substring(1);
-  let content: string | null = null;
 
   if (ext in parsersSet) {
     const parser = parsersSet[ext];
-    content = await parser.compile(fn);
+    return await parser.compile(fn);
   }
 
-  return content;
+  return null;
 }
 
-export function aftercompile(fn: tFileNaming, content: string|Stream|null) { //TODO: string|Stream
+export function aftercompile(fn: tFileNaming, cExpContent: tCompilerExportContent): tCompilerExportContent {
   const ext = fn.src.ext.substring(1);
-  let aftercompiledContent: string|Stream|null = null;
+  let cExpContentAfter: tCompilerExportContent = null;
 
   if (ext in parsersSet) {
     const parser = parsersSet[ext];
-    aftercompiledContent = parser.aftercompile(fn, content);
+    cExpContentAfter = parser.aftercompile(fn, cExpContent);
   }
 
-  return (aftercompiledContent || content || "").toString();
+  return cExpContentAfter || cExpContent;
 }
 
-export async function prepersist(fn: tFileNaming, content: string|Stream|null): Promise<void> {
+export async function prepersist(fn: tFileNaming, cExpContent: tCompilerExportContent): Promise<void> {
   /*
   switch (fn.cType.type) {
     case "build-resx": break;
@@ -118,19 +118,29 @@ export async function prepersist(fn: tFileNaming, content: string|Stream|null): 
       break;
   }*/
 }
-export async function persist(fn: tFileNaming, content: string|Stream|null): Promise<void> {
+export async function persist(fn: tFileNaming, cExpContent: tCompilerExportContent): Promise<void> {
   switch (fn.cType.type) {
     case "compilable":
-      if (content && !fn.cType.isPartial) {
+      if (cExpContent && !fn.cType.isPartial) {
         //TODO: accept Stream
-        await persistFile(fn, content.toString());
+        await persistCompilerExportContent(fn, cExpContent);
       }
       break;
     case "site-resx":
-      await copyFile(fn);
+      await copyCompilerExportContent(fn);
       break;
     case "build-resx": break;
   }
+}
+
+async function _afterpersist(fn: tFileNaming, locale?: string): Promise<void> {
+  const fileFullPath = locale ? multiLanguageFileNameStrategy(fn.out.fullPath, locale) : fn.out.fullPath;
+  const content = await fse.readFile(fileFullPath);
+
+  fn.www.hash = crypto
+  .createHash('md5')
+  .update(content)
+  .digest("hex");
 }
 export async function afterpersist(fn: tFileNaming): Promise<void> {
   //TODO: improve this check
@@ -138,10 +148,13 @@ export async function afterpersist(fn: tFileNaming): Promise<void> {
     const stats = await fse.stat(fn.out.fullPath);
     fn.stats.size = stats.size;
 
-    const content = await fse.readFile(fn.out.fullPath);
-    fn.www.hash = crypto
-    .createHash('md5')
-    .update(content)
-    .digest("hex");
+    if (fn.www.has[oMergeResx.lang.keyProp]) {
+      await currentBuildingContext().siteConfig.locale
+      .forEachAsync(async locale => {
+        await _afterpersist(fn, locale);
+      });
+    } else {
+      await _afterpersist(fn);
+    }
   }
 }

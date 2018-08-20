@@ -2,10 +2,10 @@ import fs from 'fs';
 
 import { _logInfo } from "../../../libs/debug";
 import { tFileNaming } from '../../resx';
-import { NoOp, tCompilerExport, tCompileType } from '../base';
+import { NoOp, tCompilerExport, tCompileType, tCompilerExportContent } from '../base';
 
 
-const parsedCache: {[srcFullPath: string]: any} = {};
+const parsedCache: {[srcFullPath: string]: {}} = {};
 
 function preparse(sourceFilePath: string): tCompileType {
   return {
@@ -26,10 +26,10 @@ function parse(fn: tFileNaming) {
   parsedCache[fn.src.fullPath] = data;
 }
 
-async function compile(fn: tFileNaming, ctx: any) {
+async function compile(fn: tFileNaming, ctx: any): Promise<tCompilerExportContent> {
   _logInfo("\tCompiling LANG", fn.src.fullPath);
 
-  return parsedCache[fn.src.fullPath];
+  return Promise.resolve(parsedCache[fn.src.fullPath]);
 }
 
 export default {

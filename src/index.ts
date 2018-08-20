@@ -7,7 +7,7 @@ import { getFilesRecusively } from "./libs/io";
 
 import { parseFile, precompileFile, compileFile, preparseFile, aftercompile, prepersist, afterpersist, persist } from './compiler/main';
 import { tFileNaming } from './compiler/resx';
-import { loadConfiguration, tConfig } from './libs/config';
+import { loadConfiguration, tConfig, tSiteConfig } from './libs/config';
 import { initDb, disposeDb } from './libs/audit';
 
 
@@ -41,7 +41,12 @@ export function doPhase(phaseName: string, siteName: string) {
 
 export async function build(outputPhase: string) {
   try {
-    return await _build(outputPhase);
+    const config = start();
+
+    await config.target.sites
+    .mapAsync(async siteConfig => await _build(siteConfig));
+
+    end(config);
   } catch (e) {
     _logError(e);
   }
@@ -55,71 +60,79 @@ function _logException<T, W>(err: Error, item: T, idx: number): W {
   // throw => to end execution
 }
 
-async function _build(outputPhase: string) {
-  const config = start();
+//TODO: add a building context
+let _buildingContext: {
+  siteConfig: tSiteConfig;
+  data: {[key: string]: any}
+};
+export function currentBuildingContext() {
+  return _buildingContext;
+}
 
-  //TODO: make this async
-  await config.target.sites
-  .mapAsync(async siteName => {
-    //CompilerManager.instance.building(siteName);
-    await initDb(siteName);
+async function _build(siteConfig: tSiteConfig) {
+  _buildingContext = {
+    siteConfig,
+    data: {}
+  };
 
-    const targetPath = path.join(config.target.root, siteName);
-    const outputPath = path.join(config.output.root, siteName);
+  const config = loadConfiguration();
 
-    _log(siteName, targetPath, outputPath);
-    _logSeparator();
+  //CompilerManager.instance.building(siteName);
+  await initDb(siteConfig.siteName);
 
-    const sourceFileSet = await getFilesRecusively(targetPath);
+  const targetPath = path.join(config.target.root, siteConfig.siteName);
+  const outputPath = path.join(config.output.root, siteConfig.siteName);
 
-    _log(sourceFileSet);
+  _log(siteConfig.siteName, targetPath, outputPath);
+  _logSeparator();
 
-    _logInfo("PreParsing FileSet -----------------------------------------------------");
-    const namedFileSet = await sourceFileSet
-    .mapAsync(
-      async sourceFilePath => await preparseFile(siteName, sourceFilePath, targetPath, outputPath),
-      _logException as any
-    );
+  const sourceFileSet = await getFilesRecusively(targetPath);
 
-    _logInfo("Parsing FileSet -----------------------------------------------------");
-    namedFileSet
-    .map(parseFile);
+  _log(sourceFileSet);
 
-    _logInfo("Precompile FileSet -----------------------------------------------------");
-    namedFileSet
-    .forEach(precompileFile);
-    
-    //TODO: use streams where possible for compiled content
-    _logInfo("Compile FileSet -----------------------------------------------------");
-    const compiledSet = await namedFileSet
-    .filter(fn => fn.fileName[0] != '_')
-    .mapAsync(async fn => {
-      let content = await compileFile(fn);
+  _logInfo("PreParsing FileSet -----------------------------------------------------");
+  const namedFileSet = await sourceFileSet
+  .mapAsync(
+    async sourceFilePath => await preparseFile(siteConfig.siteName, sourceFilePath, targetPath, outputPath),
+    _logException as any
+  );
 
-      return {
-        fn,
-        content: await aftercompile(fn, content)
-      };
-    }, _logException as any);
+  _logInfo("Parsing FileSet -----------------------------------------------------");
+  namedFileSet
+  .map(parseFile);
 
-    _logInfo("Aftercompile -----------------------------------------------------");
-    await compiledSet
-    .forEachAsync(async cItem => {
-      cItem.content = aftercompile(cItem.fn, cItem.content);
-    });
+  _logInfo("Precompile FileSet -----------------------------------------------------");
+  namedFileSet
+  .forEach(precompileFile);
+  
+  //TODO: use streams where possible for compiled content
+  _logInfo("Compile FileSet -----------------------------------------------------");
+  const compiledSet = await namedFileSet
+  .filter(fn => fn.fileName[0] != '_')
+  .mapAsync(async fn => {
+    let content = await compileFile(fn);
 
-    _logInfo("Prepersisting and Persisting FileSet -----------------------------------------------------");
-    await compiledSet
-    .forEachAsync(async cItem => {
-      await prepersist(cItem.fn, cItem.content);
+    return {
+      fn,
+      content
+    };
+  }, _logException as any);
 
-      await persist(cItem.fn, cItem.content);
-
-      await afterpersist(cItem.fn);
-    });
-
-    await disposeDb(siteName);
+  _logInfo("Aftercompile -----------------------------------------------------");
+  await compiledSet
+  .forEachAsync(async cItem => {
+    cItem.content = aftercompile(cItem.fn, cItem.content);
   });
 
-  end(config);
+  _logInfo("Prepersisting and Persisting FileSet -----------------------------------------------------");
+  await compiledSet
+  .forEachAsync(async cItem => {
+    await prepersist(cItem.fn, cItem.content);
+
+    await persist(cItem.fn, cItem.content);
+
+    await afterpersist(cItem.fn);
+  });
+
+  await disposeDb(siteConfig.siteName);
 };

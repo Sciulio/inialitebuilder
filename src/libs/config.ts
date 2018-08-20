@@ -1,10 +1,14 @@
 import path from "path";
 
 
+export type tSiteConfig = {
+  siteName: string;
+  locale: string[];
+};
 export type tConfig = {
   target: {
     root: string,
-    sites: string[]
+    sites: tSiteConfig[]
   },
   output: {
     root: string

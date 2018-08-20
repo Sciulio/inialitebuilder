@@ -17,6 +17,17 @@ const fs_extra_1 = __importDefault(require("fs-extra"));
 const mkpath_1 = __importDefault(require("mkpath"));
 const audit_1 = require("../libs/audit");
 const debug_1 = require("../libs/debug");
+const __1 = require("..");
+exports.oMergeResx = {
+    json: {
+        ext: "json",
+        keyProp: "data"
+    },
+    lang: {
+        ext: "lang",
+        keyProp: "locale"
+    }
+};
 //TODO: add this to compilers
 const converter = {
     ".hbs": ".html",
@@ -74,7 +85,8 @@ function toFileNaming(siteName, src_fullPath, targetPath, outputPath, cType) {
             },
             www: {
                 isPartial: cType.isPartial,
-                url: "/" + encodeURI(path_1.default.relative(outputPath, out_fullPath).replace(/\\/g, '/'))
+                url: "/" + encodeURI(path_1.default.relative(outputPath, out_fullPath).replace(/\\/g, '/')),
+                has: {}
             }
         };
         return tfnRes;
@@ -103,27 +115,52 @@ function fnMustBeCompiled(siteName, out_fullPath, src_fullPath, ctype) {
         return srcLastEditTime > outLastEditTime;
     });
 }
-function persistFile(fn, content) {
+function multiLanguageFileNameStrategy(fullPath, locale) {
+    const bCtx = __1.currentBuildingContext();
+    const isDefaultLocale = bCtx.siteConfig.locale[0] == locale;
+    if (isDefaultLocale) {
+        return fullPath;
+    }
+    return fullPath + "." + locale;
+}
+exports.multiLanguageFileNameStrategy = multiLanguageFileNameStrategy;
+//TODO: localized filename strategy
+function persistCompilerExportContent(fn, cExpcExpContent) {
     return __awaiter(this, void 0, void 0, function* () {
         debug_1._logInfo("\tPersisting:", fn.src.fullPath);
         mkpath_1.default.sync(fn.out.path);
-        yield fs_extra_1.default.writeFile(fn.out.fullPath, content);
+        if (Array.isArray(cExpcExpContent)) {
+            // localizable content
+            yield __1.currentBuildingContext().siteConfig.locale
+                .forEachAsync((locale, idx) => __awaiter(this, void 0, void 0, function* () { return yield fs_extra_1.default.writeFile(multiLanguageFileNameStrategy(fn.out.fullPath, locale), cExpcExpContent[idx]); }));
+        }
+        else {
+            yield fs_extra_1.default.writeFile(fn.out.fullPath, cExpcExpContent);
+        }
     });
 }
-exports.persistFile = persistFile;
-function copyFile(fn) {
+exports.persistCompilerExportContent = persistCompilerExportContent;
+function copyCompilerExportContent(fn) {
     return __awaiter(this, void 0, void 0, function* () {
         debug_1._logInfo("\tCopying:", fn.src.fullPath);
         mkpath_1.default.sync(fn.out.path);
-        yield fs_extra_1.default.copy(fn.src.fullPath, fn.out.fullPath);
+        if (fn.www.has[exports.oMergeResx.lang.keyProp]) {
+            // localizable content
+            yield __1.currentBuildingContext().siteConfig.locale
+                .forEachAsync((locale, idx) => __awaiter(this, void 0, void 0, function* () { return fs_extra_1.default.copy(fn.src.fullPath, multiLanguageFileNameStrategy(fn.out.fullPath, locale)); }));
+        }
+        else {
+            yield fs_extra_1.default.copy(fn.src.fullPath, fn.out.fullPath);
+        }
     });
 }
-exports.copyFile = copyFile;
+exports.copyCompilerExportContent = copyCompilerExportContent;
 function toRootRelPath(fn, relPath) {
     const absPath = path_1.default.resolve(fn.src.path, relPath);
     return path_1.default.relative(process.cwd(), absPath);
 }
 exports.toRootRelPath = toRootRelPath;
+//export class LocalizationManager {}
 class IoResxManager {
     constructor() {
         this.items = [];

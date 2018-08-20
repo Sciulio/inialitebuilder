@@ -1,7 +1,11 @@
+export declare type tSiteConfig = {
+    siteName: string;
+    locale: string[];
+};
 export declare type tConfig = {
     target: {
         root: string;
-        sites: string[];
+        sites: tSiteConfig[];
     };
     output: {
         root: string;

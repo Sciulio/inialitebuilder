@@ -15,6 +15,9 @@ const fs_1 = __importDefault(require("fs"));
 const debug_1 = require("../../../libs/debug");
 const base_1 = require("../base");
 const clean_css_1 = __importDefault(require("clean-css"));
+const ccss = new clean_css_1.default({
+    inliner: true,
+});
 const parsedCache = {};
 function preparse(sourceFilePath) {
     return {
@@ -37,11 +40,15 @@ function compile(fn) {
         return parsedCache[fn.src.fullPath].toString();
     });
 }
-const ccss = new clean_css_1.default({
-    inliner: true,
-});
-function aftercompile(fn, content) {
-    return ccss.minify(content).styles;
+function aftercompile(fn, cExpContent) {
+    if (!cExpContent) {
+        return cExpContent;
+    }
+    if (Array.isArray(cExpContent)) {
+        return cExpContent
+            .map(content => ccss.minify(content).styles);
+    }
+    return ccss.minify(cExpContent).styles;
 }
 exports.default = {
     extension: "css",

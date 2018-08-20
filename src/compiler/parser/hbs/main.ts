@@ -10,9 +10,11 @@ import './helpers/main';
 import { TemplateDelegate } from 'handlebars';
 import { minify } from "html-minifier";
 
-import { tFileNaming, toRootRelPath, IoResxManager } from '../../resx';
-import { tCompilerExport, tCompileType } from '../base';
+import { tFileNaming, toRootRelPath, IoResxManager, oMergeResx } from '../../resx';
+import { tCompilerExport, tCompileType, tCompilerExportContent } from '../base';
 import { compileFile } from '../../main';
+import { currentBuildingContext } from '../../..';
+import { Stream } from 'stream';
 
 
 var layouts = require('handlebars-layouts');
@@ -99,22 +101,14 @@ function precompile(fn: tFileNaming) {
   }
 }
 
-const mergeResx = {
-  json: {
-    ext: "json",
-    keyProp: "data"
-  },
-  lang: {
-    ext: "lang",
-    keyProp: "locale"
-  }
-}
-
 async function mergeResxData(fn: tFileNaming, ctx: any, mR: {ext: string, keyProp: string}) {
   const fnResx = IoResxManager.instance.fnItemByExt(
     mR.ext,
     fn_resx => fn_resx.src.path == fn.src.path && fn_resx.fileName == fn.fileName
   );
+
+  fn.www.has[mR.keyProp] = !!fn.www.has[mR.keyProp] || !!fnResx;
+
   if (fnResx) {
     _logWarn("\t\t\t\tmerging content for", fn.src.fullPath, "from", fnResx.src.fullPath);
 
@@ -127,11 +121,9 @@ async function prepareRelatedResxDate(srcFullPathNoExt: string, ctx: any) {
   const fnRelated = IoResxManager.instance.fnItem(_fnItem => _fnItem.src.fullPathNoExt == srcFullPathNoExt);
   
   await Promise.all([
-    mergeResxData(fnRelated, ctx, mergeResx.json),
-    mergeResxData(fnRelated, ctx, mergeResx.lang)
+    mergeResxData(fnRelated, ctx, oMergeResx.json),
+    mergeResxData(fnRelated, ctx, oMergeResx.lang)
   ]);
-  //await mergeResxData(fnRelated, ctx, mergeResx.json);
-  //await mergeResxData(fnRelated, ctx, mergeResx.lang);
 
   ctx = prepareResxData(fnRelated, ctx);
 }
@@ -141,6 +133,7 @@ function prepareResxData(fn: tFileNaming, ctx = {}): any {
 
   if (fnRelLayout) {
     _logWarn("\t\t\textLayoutContext", fnRelLayout.fn.src.fullPath);
+
     prepareRelatedResxDate(fnRelLayout.fn.src.fullPathNoExt, ctx);
   }
 
@@ -148,13 +141,21 @@ function prepareResxData(fn: tFileNaming, ctx = {}): any {
   .filter(fn => fn.type == "partial")
   .forEach(fnRelPartial => {
     _logWarn("\t\t\textPartialContext", fnRelPartial.fn.src.fullPath);
+
     prepareRelatedResxDate(fnRelPartial.fn.src.fullPathNoExt, ctx);
   });
 
   return ctx;
 }
 
-async function compile(fn: tFileNaming) {
+function mergeLinkData(fn: tFileNaming, ctx: any) {
+  ctx["links"] = {
+    isPartial: fn.www.isPartial,
+    url: fn.www.url
+  };
+}
+
+async function compile(fn: tFileNaming): Promise<tCompilerExportContent> {
   _logInfo("\tCompiling HBS"); //, fn.src.fullPath);
 
   const template = templateCache[fn.src.fullPath];
@@ -163,29 +164,41 @@ async function compile(fn: tFileNaming) {
     let ctx = prepareResxData(fn);
     
     await Promise.all([
-      mergeResxData(fn, ctx, mergeResx.json),
-      mergeResxData(fn, ctx, mergeResx.lang)
+      mergeResxData(fn, ctx, oMergeResx.json),
+      mergeResxData(fn, ctx, oMergeResx.lang)
     ]);
-    
-    ctx["links"] = {
-      isPartial: fn.www.isPartial,
-      url: fn.www.url
-    };
+    mergeLinkData(fn, ctx);
 
-    return template(ctx);
+    const bCtx = currentBuildingContext();
+    const res = bCtx.siteConfig.locale
+    .map(locale => {
+      bCtx.data[oMergeResx.lang.keyProp] = locale;
+      return template(ctx);
+    });
+    delete bCtx.data[oMergeResx.lang.keyProp];
+
+    return res;
   }
   return null;
 }
 
-function aftercompile(fn: tFileNaming, content: string) {
-  //TODO: load config
-
+function _aftercompile(content: string) {
   return minify(content, {
     collapseWhitespace: true,
     conservativeCollapse: true,
     preserveLineBreaks: true,
     removeComments: true
   });
+}
+function aftercompile(fn: tFileNaming, content: tCompilerExportContent) {
+  //TODO: load config
+  if (!content) {
+    return null;
+  }
+  if (Array.isArray(content)) {
+    return content.map(content => _aftercompile(content.toString()));
+  }
+  return _aftercompile(content.toString());
 }
 
 export default {
