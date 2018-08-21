@@ -122,9 +122,7 @@ function fnMustBeCompiled(siteName, out_fullPath, src_fullPath, ctype) {
         if (ctype.type == "build-resx") {
             // needs build but new version only if edited, otherwise no new version
             needsBuildAndVersion = needsBuildAndVersion || null;
-            //return (srcLastEditTime > outLastEditTime) || null;
         }
-        //return srcLastEditTime > outLastEditTime;
         return {
             needsBuild: !!needsBuildAndVersion || needsBuildAndVersion == null,
             needsNewVersion: !!needsBuildAndVersion,
