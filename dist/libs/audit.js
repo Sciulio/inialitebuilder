@@ -45,7 +45,7 @@ function disposeDb(siteName) {
         const dbWrapper = dbs[siteName];
         const db = dbWrapper.db;
         db.insert({
-            type: "buildinfo",
+            _type: "buildinfo",
             on: dbWrapper.on,
             duration: Date.now() - dbWrapper.on
         });
@@ -73,14 +73,22 @@ function insertFileAudit(fn, _on) {
         const lastAudit = yield fileLastAudit(fn.siteName, fn.src.fullPath);
         return new Promise((res, rej) => {
             db.insert({
-                type: "fileinfo",
+                _type: "fileinfo",
                 _on,
-                action: lastAudit ? "edited" : "created",
                 path: fn.relPath,
                 url: fn.www.url,
-                version: fn.stats.version,
-                hash: fn.www.hash || "",
-                size: fn.stats.size || 0,
+                audit: {
+                    action: lastAudit ? "edited" : "created",
+                    version: fn.stats.version,
+                },
+                stats: {
+                    hash: fn.www.hash || "",
+                    size: fn.stats.size || 0,
+                },
+                content: {
+                    type: "",
+                    visibility: "public"
+                },
                 has: fn.www.has
             }, (err, doc) => {
                 err ? rej(err) : res(doc);
@@ -137,7 +145,7 @@ function convertObjToBuildInfo(obj) {
         return obj;
     }
     return {
-        type: "buildinfo",
+        _type: "buildinfo",
         on: 0,
         duration: 0
     };

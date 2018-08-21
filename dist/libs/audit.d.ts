@@ -2,19 +2,27 @@ export declare type baseDoc = {
     _id?: string;
 };
 export declare type docBuildAudit = baseDoc & {
-    type: "buildinfo";
+    _type: "buildinfo";
     on: number;
     duration: number;
 };
 export declare type docFileAudit = baseDoc & {
-    type: "fileinfo";
+    _type: "fileinfo";
     _on: number;
     path: string;
     url: string;
-    action: "created" | "edited" | "deleted";
-    version: number;
-    hash: string;
-    size: number;
+    audit: {
+        action: "created" | "edited" | "deleted";
+        version: number;
+    };
+    stats: {
+        hash: string;
+        size: number;
+    };
+    content: {
+        type: string;
+        visibility: "public" | "private";
+    };
     has: {
         [keyProp: string]: boolean;
     };

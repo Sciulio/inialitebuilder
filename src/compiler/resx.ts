@@ -86,7 +86,7 @@ async function toFileNaming(siteName: string, src_fullPath: string, targetPath: 
   const needsNewVersion = !!needsBuildAndVersion;
 
   const fileAudit = await fileLastAudit(siteName, src_fullPath);
-  const version = fileAudit ? fileAudit.version + (needsNewVersion ? 1 : 0) : 0;
+  const version = fileAudit ? fileAudit.audit.version + (needsNewVersion ? 1 : 0) : 0;
 
   //_log(src_fullPath, targetPath, outputPath, outPath)
   

@@ -11,19 +11,27 @@ export type baseDoc = {
   _id?: string;
 }
 export type docBuildAudit = baseDoc & {
-  type: "buildinfo",
+  _type: "buildinfo",
   on: number;
   duration: number;
 };
 export type docFileAudit = baseDoc & {
-  type: "fileinfo",
+  _type: "fileinfo",
   _on: number;
   path: string;
   url: string;
-  action: "created" | "edited" | "deleted";
-  version: number;
-  hash: string;
-  size: number;
+  audit: {
+    action: "created" | "edited" | "deleted";
+    version: number;
+  };
+  stats: {
+    hash: string;
+    size: number;
+  };
+  content: {
+    type: string;
+    visibility: "public" | "private";
+  };
   has: {[keyProp: string]: boolean};
 };
 
@@ -63,7 +71,7 @@ export async function disposeDb(siteName: string) {
   const db = dbWrapper.db;
 
   db.insert({
-    type: "buildinfo",
+    _type: "buildinfo",
     on: dbWrapper.on,
     duration: Date.now() - dbWrapper.on
   } as docBuildAudit);
@@ -97,14 +105,22 @@ async function insertFileAudit(fn: tFileNaming, _on: number) {
 
   return new Promise<docFileAudit>((res, rej) => {
     db.insert<docFileAudit>({
-      type: "fileinfo",
+      _type: "fileinfo",
       _on,
-      action: lastAudit ? "edited" : "created",
       path: fn.relPath,
       url: fn.www.url,
-      version: fn.stats.version,
-      hash: fn.www.hash || "",
-      size: fn.stats.size || 0,
+      audit: {
+        action: lastAudit ? "edited" : "created",
+        version: fn.stats.version,
+      },
+      stats: {
+        hash: fn.www.hash || "",
+        size: fn.stats.size || 0,
+      },
+      content: { //TODO
+        type: "",
+        visibility: "public"
+      },
       has: fn.www.has
     }, (err, doc) => {
       err ? rej(err) : res(doc);
@@ -160,7 +176,7 @@ function convertObjToBuildInfo(obj: docBuildAudit): tBuildAudit {
   }
   
   return {
-    type: "buildinfo",
+    _type: "buildinfo",
     on: 0,
     duration: 0
   };

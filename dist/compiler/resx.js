@@ -54,7 +54,7 @@ function toFileNaming(siteName, src_fullPath, targetPath, outputPath, cType) {
         const needsBuild = !!needsBuildAndVersion || needsBuildAndVersion == null;
         const needsNewVersion = !!needsBuildAndVersion;
         const fileAudit = yield audit_1.fileLastAudit(siteName, src_fullPath);
-        const version = fileAudit ? fileAudit.version + (needsNewVersion ? 1 : 0) : 0;
+        const version = fileAudit ? fileAudit.audit.version + (needsNewVersion ? 1 : 0) : 0;
         //_log(src_fullPath, targetPath, outputPath, outPath)
         const tfnRes = {
             siteName,
