@@ -94,6 +94,10 @@ function _build(siteConfig) {
             .filter(fn => fn.fileName[0] != '_')
             .mapAsync((fn) => __awaiter(this, void 0, void 0, function* () {
             let content = yield main_1.compileFile(fn);
+            // update lastmodified if file does not need to be built but has been built because of related resources
+            if (fn.stats.built && !fn.stats.needsBuild) {
+                fn.www.lastModified = Date.now();
+            }
             return {
                 fn,
                 content

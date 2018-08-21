@@ -30,7 +30,9 @@ export type docFileAudit = baseDoc & {
   };
   content: {
     type: string;
+    charset: string;
     visibility: "public" | "private";
+    lastModified: string;
   };
   has: {[keyProp: string]: boolean};
 };
@@ -70,11 +72,13 @@ export async function disposeDb(siteName: string) {
   const dbWrapper = dbs[siteName];
   const db = dbWrapper.db;
 
-  db.insert({
+  const docBuild = {
     _type: "buildinfo",
     on: dbWrapper.on,
     duration: Date.now() - dbWrapper.on
-  } as docBuildAudit);
+  } as docBuildAudit;
+
+  db.insert(docBuild);
 
   await (await Promise.all(
     await IoResxManager.instance.items
@@ -91,7 +95,6 @@ export async function disposeDb(siteName: string) {
       hash: fn.www.hash
     };
   });
-  
   await fse.writeJson(path.join(config.output.root, siteName + ".json"), wsItems);
   
   //TODO: add deleted-file case
@@ -118,8 +121,10 @@ async function insertFileAudit(fn: tFileNaming, _on: number) {
         size: fn.stats.size || 0,
       },
       content: { //TODO
-        type: "",
-        visibility: "public"
+        type: fn.www.type,
+        charset: fn.www.charset,
+        visibility: "public",
+        lastModified: new Date(fn.www.lastModified).toUTCString()
       },
       has: fn.www.has
     }, (err, doc) => {

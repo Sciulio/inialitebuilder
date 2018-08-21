@@ -72,6 +72,7 @@ function compileFile(fn, forceCompile = false) {
             debug_1._logInfo("\t\tSkipped because existing not outdated!");
             return null;
         }
+        fn.stats.built = true;
         const ext = fn.src.ext.substring(1);
         if (ext in parsersSet) {
             const parser = parsersSet[ext];

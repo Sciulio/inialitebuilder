@@ -80,10 +80,11 @@ export async function compileFile(fn: tFileNaming, forceCompile: boolean = false
     return null;
   }
 
-  const ext = fn.src.ext.substring(1);
+  fn.stats.built = true;
 
-  if (ext in parsersSet) {
-    const parser = parsersSet[ext];
+  const srcExt = fn.src.ext.substring(1);
+  if (srcExt in parsersSet) {
+    const parser = parsersSet[srcExt];
     return await parser.compile(fn);
   }
 

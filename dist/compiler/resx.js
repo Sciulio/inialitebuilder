@@ -18,6 +18,7 @@ const mkpath_1 = __importDefault(require("mkpath"));
 const audit_1 = require("../libs/audit");
 const debug_1 = require("../libs/debug");
 const __1 = require("..");
+const mime_1 = require("../libs/mime");
 exports.oMergeResx = {
     json: {
         ext: "json",
@@ -42,19 +43,24 @@ function toFileNaming(siteName, src_fullPath, targetPath, outputPath, cType) {
         const fileName = srcFileName.substring(0, srcFileName.indexOf("."));
         const srcPath = path_1.default.dirname(src_fullPath);
         const srcExt = path_1.default.extname(srcFileName);
+        const outExt = converter[srcExt] || srcExt;
+        const outMime = mime_1.mimeTypes[outExt] || "";
         const relPath = path_1.default.relative(targetPath, src_fullPath);
-        const outFileName = srcExt in converter ?
-            srcFileName.replace(srcExt, converter[srcExt]) :
+        const outFileName = srcExt != outExt ?
+            srcFileName.replace(srcExt, outExt) :
             srcFileName; //TODO
         const srcAbsolutePath = path_1.default.relative(targetPath, srcPath);
         const outPath = path_1.default.join(outputPath, srcAbsolutePath);
         const out_fullPath = path_1.default.join(outPath, outFileName);
         const out_fullPathNoExt = path_1.default.join(outPath, fileName);
-        const needsBuildAndVersion = (yield fnMustBeCompiled(siteName, out_fullPath, src_fullPath, cType));
-        const needsBuild = !!needsBuildAndVersion || needsBuildAndVersion == null;
-        const needsNewVersion = !!needsBuildAndVersion;
+        const { needsBuild, needsNewVersion, srcLastModifiedTime //TODO: check for composed resources
+         } = yield fnMustBeCompiled(siteName, out_fullPath, src_fullPath, cType);
+        //const needsBuildAndVersion = (await fnMustBeCompiled(siteName, out_fullPath, src_fullPath, cType));
+        //const needsBuild = !!needsBuildAndVersion || needsBuildAndVersion == null;
+        //const needsNewVersion = !!needsBuildAndVersion;
         const fileAudit = yield audit_1.fileLastAudit(siteName, src_fullPath);
         const version = fileAudit ? fileAudit.audit.version + (needsNewVersion ? 1 : 0) : 0;
+        const outUrl = "/" + encodeURI(path_1.default.relative(outputPath, out_fullPath).replace(/\\/g, '/'));
         //_log(src_fullPath, targetPath, outputPath, outPath)
         const tfnRes = {
             siteName,
@@ -62,6 +68,7 @@ function toFileNaming(siteName, src_fullPath, targetPath, outputPath, cType) {
             relPath,
             cType,
             stats: {
+                built: false,
                 needsBuild,
                 needsNewVersion,
                 version
@@ -85,8 +92,11 @@ function toFileNaming(siteName, src_fullPath, targetPath, outputPath, cType) {
             },
             www: {
                 isPartial: cType.isPartial,
-                url: "/" + encodeURI(path_1.default.relative(outputPath, out_fullPath).replace(/\\/g, '/')),
-                has: {}
+                url: outUrl,
+                has: {},
+                type: outMime,
+                charset: "utf-8",
+                lastModified: srcLastModifiedTime
             }
         };
         return tfnRes;
@@ -94,25 +104,32 @@ function toFileNaming(siteName, src_fullPath, targetPath, outputPath, cType) {
 }
 function fnMustBeCompiled(siteName, out_fullPath, src_fullPath, ctype) {
     return __awaiter(this, void 0, void 0, function* () {
-        const outExists = fs_1.default.existsSync(out_fullPath);
-        //const outExists = (await fse.ex.ensureFile(.exists(out_fullPath));
         //const srcStats = fs.statSync(src_fullPath);
         const srcStats = (yield fs_extra_1.default.stat(src_fullPath));
-        const srcLastEditTime = srcStats.mtimeMs || srcStats.ctimeMs;
-        let outLastEditTime = 0;
+        const srcLastModifiedTime = srcStats.mtimeMs || srcStats.ctimeMs;
+        let outLastModifiedTime = 0;
+        const outExists = fs_1.default.existsSync(out_fullPath);
+        //const outExists = (await fse.ex.ensureFile(.exists(out_fullPath));
         if (outExists) {
             const outStats = (yield fs_extra_1.default.stat(out_fullPath));
-            outLastEditTime = outStats.mtimeMs || outStats.ctimeMs;
+            outLastModifiedTime = outStats.mtimeMs || outStats.ctimeMs;
         }
         else {
             const lastFileAudit = yield audit_1.fileLastAudit(siteName, src_fullPath);
-            outLastEditTime = lastFileAudit ? lastFileAudit._on : 0;
+            outLastModifiedTime = lastFileAudit ? lastFileAudit._on : 0;
         }
+        let needsBuildAndVersion = srcLastModifiedTime > outLastModifiedTime;
         if (ctype.type == "build-resx") {
             // needs build but new version only if edited, otherwise no new version
-            return (srcLastEditTime > outLastEditTime) || null;
+            needsBuildAndVersion = needsBuildAndVersion || null;
+            //return (srcLastEditTime > outLastEditTime) || null;
         }
-        return srcLastEditTime > outLastEditTime;
+        //return srcLastEditTime > outLastEditTime;
+        return {
+            needsBuild: !!needsBuildAndVersion || needsBuildAndVersion == null,
+            needsNewVersion: !!needsBuildAndVersion,
+            srcLastModifiedTime
+        };
     });
 }
 function multiLanguageFileNameStrategy(fullPath, locale) {

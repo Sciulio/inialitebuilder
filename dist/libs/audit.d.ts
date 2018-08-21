@@ -21,7 +21,9 @@ export declare type docFileAudit = baseDoc & {
     };
     content: {
         type: string;
+        charset: string;
         visibility: "public" | "private";
+        lastModified: string;
     };
     has: {
         [keyProp: string]: boolean;

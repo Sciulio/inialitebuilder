@@ -112,6 +112,11 @@ async function _build(siteConfig: tSiteConfig) {
   .mapAsync(async fn => {
     let content = await compileFile(fn);
 
+    // update lastmodified if file does not need to be built but has been built because of related resources
+    if (fn.stats.built && !fn.stats.needsBuild) {
+      fn.www.lastModified = Date.now();
+    }
+
     return {
       fn,
       content

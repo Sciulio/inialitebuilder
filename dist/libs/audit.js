@@ -44,11 +44,12 @@ function disposeDb(siteName) {
     return __awaiter(this, void 0, void 0, function* () {
         const dbWrapper = dbs[siteName];
         const db = dbWrapper.db;
-        db.insert({
+        const docBuild = {
             _type: "buildinfo",
             on: dbWrapper.on,
             duration: Date.now() - dbWrapper.on
-        });
+        };
+        db.insert(docBuild);
         yield (yield Promise.all(yield resx_1.IoResxManager.instance.items
             .filterAsync((fn) => __awaiter(this, void 0, void 0, function* () { return fn.stats.needsNewVersion || !(yield fileLastAudit(siteName, fn.relPath)); }))))
             .filter(fn => fn.cType.type == "site-resx" || fn.cType.type == "compilable" && !fn.cType.isPartial)
@@ -86,8 +87,10 @@ function insertFileAudit(fn, _on) {
                     size: fn.stats.size || 0,
                 },
                 content: {
-                    type: "",
-                    visibility: "public"
+                    type: fn.www.type,
+                    charset: fn.www.charset,
+                    visibility: "public",
+                    lastModified: new Date(fn.www.lastModified).toUTCString()
                 },
                 has: fn.www.has
             }, (err, doc) => {

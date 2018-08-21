@@ -6,6 +6,7 @@ import { fileLastAudit } from '../libs/audit';
 import { _logInfo } from '../libs/debug';
 import { tCompileType, tCompilerExportContent } from './parser/base';
 import { currentBuildingContext } from '..';
+import { mimeTypes } from '../libs/mime';
 
 
 export const oMergeResx = {
@@ -33,6 +34,7 @@ export type tFileNaming = {
   relPath: string;
   cType: tCompileType;
   stats: {
+    built: boolean; // if file has effectively been built
     needsBuild: boolean;
     needsNewVersion: boolean;
     version: number;
@@ -48,7 +50,10 @@ export type tFileNaming = {
     isPartial: boolean;
     url: string;
     hash?: string;
-    has: {[key: string]: boolean}
+    has: {[key: string]: boolean};
+    type: string;
+    charset: "" | "utf-8";
+    lastModified: number;
   };
 }
 
@@ -60,7 +65,6 @@ const converter: {[ext: string]: string} = {
   ".scss": ".css"
 }
 
-
 async function toFileNaming(siteName: string, src_fullPath: string, targetPath: string, outputPath: string, cType: tCompileType): Promise<tFileNaming> {
   src_fullPath = path.normalize(src_fullPath);
 
@@ -68,11 +72,13 @@ async function toFileNaming(siteName: string, src_fullPath: string, targetPath: 
   const fileName = srcFileName.substring(0, srcFileName.indexOf("."));
   const srcPath = path.dirname(src_fullPath);
   const srcExt = path.extname(srcFileName);
+  const outExt = converter[srcExt] || srcExt;
+  const outMime = mimeTypes[outExt] || "";
 
   const relPath = path.relative(targetPath, src_fullPath);
 
-  const outFileName = srcExt in converter ?
-    srcFileName.replace(srcExt, converter[srcExt]) :
+  const outFileName = srcExt != outExt ?
+    srcFileName.replace(srcExt, outExt) :
     srcFileName; //TODO
   
   const srcAbsolutePath = path.relative(targetPath, srcPath);
@@ -81,12 +87,19 @@ async function toFileNaming(siteName: string, src_fullPath: string, targetPath: 
   const out_fullPath = path.join(outPath, outFileName);
   const out_fullPathNoExt = path.join(outPath, fileName);
 
-  const needsBuildAndVersion = (await fnMustBeCompiled(siteName, out_fullPath, src_fullPath, cType));
-  const needsBuild = !!needsBuildAndVersion || needsBuildAndVersion == null;
-  const needsNewVersion = !!needsBuildAndVersion;
+  const {
+    needsBuild,
+    needsNewVersion,
+    srcLastModifiedTime //TODO: check for composed resources
+  } = await fnMustBeCompiled(siteName, out_fullPath, src_fullPath, cType);
+  //const needsBuildAndVersion = (await fnMustBeCompiled(siteName, out_fullPath, src_fullPath, cType));
+  //const needsBuild = !!needsBuildAndVersion || needsBuildAndVersion == null;
+  //const needsNewVersion = !!needsBuildAndVersion;
 
   const fileAudit = await fileLastAudit(siteName, src_fullPath);
   const version = fileAudit ? fileAudit.audit.version + (needsNewVersion ? 1 : 0) : 0;
+
+  const outUrl = "/" + encodeURI(path.relative(outputPath, out_fullPath).replace(/\\/g, '/'));
 
   //_log(src_fullPath, targetPath, outputPath, outPath)
   
@@ -96,6 +109,7 @@ async function toFileNaming(siteName: string, src_fullPath: string, targetPath: 
     relPath,
     cType,
     stats: {
+      built: false,
       needsBuild,
       needsNewVersion,
       version
@@ -119,36 +133,44 @@ async function toFileNaming(siteName: string, src_fullPath: string, targetPath: 
     },
     www: {
       isPartial: cType.isPartial,
-      url: "/" + encodeURI(path.relative(outputPath, out_fullPath).replace(/\\/g, '/')),
-      has: {}
+      url: outUrl,
+      has: {},
+      type: outMime,
+      charset: "utf-8", //TODO
+      lastModified: srcLastModifiedTime
     }
   };
 
   return tfnRes;
 }
 
-async function fnMustBeCompiled(siteName: string, out_fullPath: string, src_fullPath: string, ctype: tCompileType): Promise<boolean|null> {
-  const outExists = fs.existsSync(out_fullPath);
-  //const outExists = (await fse.ex.ensureFile(.exists(out_fullPath));
-  
+async function fnMustBeCompiled(siteName: string, out_fullPath: string, src_fullPath: string, ctype: tCompileType) {
   //const srcStats = fs.statSync(src_fullPath);
   const srcStats = (await fse.stat(src_fullPath));
-  const srcLastEditTime = srcStats.mtimeMs || srcStats.ctimeMs;
-  let outLastEditTime: number = 0;
+  const srcLastModifiedTime = srcStats.mtimeMs || srcStats.ctimeMs;
+  let outLastModifiedTime: number = 0;
   
+  const outExists = fs.existsSync(out_fullPath);
+  //const outExists = (await fse.ex.ensureFile(.exists(out_fullPath));
   if (outExists) {
     const outStats = (await fse.stat(out_fullPath));
-    outLastEditTime = outStats.mtimeMs || outStats.ctimeMs;
+    outLastModifiedTime = outStats.mtimeMs || outStats.ctimeMs;
   } else {
     const lastFileAudit = await fileLastAudit(siteName, src_fullPath);
-    outLastEditTime = lastFileAudit ? lastFileAudit._on : 0;
+    outLastModifiedTime = lastFileAudit ? lastFileAudit._on : 0;
   }
 
+  let needsBuildAndVersion: boolean|null = srcLastModifiedTime > outLastModifiedTime;
   if (ctype.type == "build-resx") {
     // needs build but new version only if edited, otherwise no new version
-    return (srcLastEditTime > outLastEditTime) || null;
+    needsBuildAndVersion = needsBuildAndVersion || null;
   }
-  return srcLastEditTime > outLastEditTime;
+    
+  return {
+    needsBuild: !!needsBuildAndVersion || needsBuildAndVersion == null,
+    needsNewVersion: !!needsBuildAndVersion,
+    srcLastModifiedTime
+  };
 }
 
 export function multiLanguageFileNameStrategy(fullPath: string, locale: string) {

@@ -23,6 +23,7 @@ export declare type tFileNaming = {
     relPath: string;
     cType: tCompileType;
     stats: {
+        built: boolean;
         needsBuild: boolean;
         needsNewVersion: boolean;
         version: number;
@@ -41,6 +42,9 @@ export declare type tFileNaming = {
         has: {
             [key: string]: boolean;
         };
+        type: string;
+        charset: "" | "utf-8";
+        lastModified: number;
     };
 };
 export declare function multiLanguageFileNameStrategy(fullPath: string, locale: string): string;
