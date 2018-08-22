@@ -1,11 +1,10 @@
 import path from 'path';
 import crypto from 'crypto';
-import { Stream } from 'stream';
 
 import fse from 'fs-extra';
+import { load } from 'dynamolo';
 
 import { _logError, _logInfo } from "../libs/debug";
-import { dynamolo } from '../libs/dynamolo';
 import { tCompilerExport, tCompileType, tCompilerExportContent } from './parser/base';
 import { IoResxManager, tFileNaming, persistCompilerExportContent, copyCompilerExportContent, oMergeResx, multiLanguageFileNameStrategy } from './resx';
 import { currentBuildingContext } from '..';
@@ -13,11 +12,16 @@ import { currentBuildingContext } from '..';
 
 const parsersSet: { [ext: string]: tCompilerExport } = {};
 
-dynamolo<tCompilerExport>(
-  path.join(__dirname, './parser/'),
+load<tCompilerExport>(
+  path.join(__dirname, './parser/*/main.js'), //'./parser/*/main.js',
   impCompiler => Array.isArray(impCompiler.extension) ?
     impCompiler.extension.forEach(ext => parsersSet[ext] = impCompiler) :
-    parsersSet[impCompiler.extension] = impCompiler
+    parsersSet[impCompiler.extension] = impCompiler, {
+    exportDefault: true,
+    //rootPath: __dirname,
+    logInfo: (...args: any[]) => console.log("\x1b[35m", "INFO", ...args, "\x1b[0m"),
+    logError: (...args: any[]) => console.log("\x1b[31m", "ERROR", ...args, "\x1b[0m")
+  }
 );
 
 

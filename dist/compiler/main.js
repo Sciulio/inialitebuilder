@@ -14,14 +14,21 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const path_1 = __importDefault(require("path"));
 const crypto_1 = __importDefault(require("crypto"));
 const fs_extra_1 = __importDefault(require("fs-extra"));
+const dynamolo_1 = require("dynamolo");
 const debug_1 = require("../libs/debug");
-const dynamolo_1 = require("../libs/dynamolo");
 const resx_1 = require("./resx");
 const __1 = require("..");
 const parsersSet = {};
-dynamolo_1.dynamolo(path_1.default.join(__dirname, './parser/'), impCompiler => Array.isArray(impCompiler.extension) ?
+dynamolo_1.load(path_1.default.join(__dirname, './parser/*/main.js'), //'./parser/*/main.js',
+//'./parser/*/main.js',
+impCompiler => Array.isArray(impCompiler.extension) ?
     impCompiler.extension.forEach(ext => parsersSet[ext] = impCompiler) :
-    parsersSet[impCompiler.extension] = impCompiler);
+    parsersSet[impCompiler.extension] = impCompiler, {
+    exportDefault: true,
+    //rootPath: __dirname,
+    logInfo: (...args) => console.log("\x1b[35m", "INFO", ...args, "\x1b[0m"),
+    logError: (...args) => console.log("\x1b[31m", "ERROR", ...args, "\x1b[0m")
+});
 function preparseFile(siteName, sourceFilePath, targetPath, outputPath) {
     return __awaiter(this, void 0, void 0, function* () {
         const ext = path_1.default.extname(sourceFilePath).substring(1);

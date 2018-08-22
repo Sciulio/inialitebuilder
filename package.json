@@ -16,6 +16,7 @@
   "dependencies": {
     "async-extensions": "^0.3.1",
     "clean-css": "^4.1.11",
+    "dynamolo": "^1.0.5",
     "fs-extra": "^6.0.1",
     "handlebars": "^4.0.11",
     "handlebars-layouts": "^3.1.4",
