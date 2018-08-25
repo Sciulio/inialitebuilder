@@ -26,8 +26,8 @@ impCompiler => Array.isArray(impCompiler.extension) ?
     parsersSet[impCompiler.extension] = impCompiler, {
     exportDefault: true,
     //rootPath: __dirname,
-    logInfo: (...args) => console.log("\x1b[35m", "INFO", ...args, "\x1b[0m"),
-    logError: (...args) => console.log("\x1b[31m", "ERROR", ...args, "\x1b[0m")
+    logInfo: debug_1._logInfo,
+    logError: debug_1._logError // (...args: any[]) => console.log("\x1b[31m", "ERROR", ...args, "\x1b[0m")
 });
 function preparseFile(siteName, sourceFilePath, targetPath, outputPath) {
     return __awaiter(this, void 0, void 0, function* () {

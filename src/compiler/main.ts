@@ -19,8 +19,8 @@ load<tCompilerExport>(
     parsersSet[impCompiler.extension] = impCompiler, {
     exportDefault: true,
     //rootPath: __dirname,
-    logInfo: (...args: any[]) => console.log("\x1b[35m", "INFO", ...args, "\x1b[0m"),
-    logError: (...args: any[]) => console.log("\x1b[31m", "ERROR", ...args, "\x1b[0m")
+    logInfo: _logInfo, // (...args: any[]) => console.log("\x1b[35m", "INFO", ...args, "\x1b[0m"),
+    logError: _logError // (...args: any[]) => console.log("\x1b[31m", "ERROR", ...args, "\x1b[0m")
   }
 );
 
