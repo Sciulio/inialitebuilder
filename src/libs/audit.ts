@@ -87,16 +87,6 @@ export async function disposeDb(siteName: string) {
   .filter(fn => fn.cType.type == "site-resx" || fn.cType.type == "compilable" && !fn.cType.isPartial)
   .forEachAsync(async fn => { await insertFileAudit(fn, dbWrapper.on); });
   
-  //TODO save file with files hashes for ws and etags
-  const wsItems = await IoResxManager.instance.items
-  .mapAsync(async fn => {
-    return {
-      url: fn.www.url,
-      hash: fn.www.hash
-    };
-  });
-  await fse.writeJson(path.join(config.output.root, siteName + ".json"), wsItems);
-  
   //TODO: add deleted-file case
 
   delete dbs[siteName];
