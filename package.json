@@ -15,26 +15,26 @@
   "license": "ISC",
   "dependencies": {
     "async-extensions": "^0.3.1",
-    "clean-css": "^4.1.11",
-    "dynamolo": "^1.0.5",
+    "clean-css": "^4.2.1",
+    "dynamolo": "^1.0.7",
     "fs-extra": "^6.0.1",
-    "handlebars": "^4.0.11",
+    "handlebars": "^4.0.12",
     "handlebars-layouts": "^3.1.4",
-    "html-minifier": "^3.5.19",
-    "lodash": "^4.17.10",
+    "html-minifier": "^3.5.20",
+    "lodash": "^4.17.11",
     "mkpath": "^1.0.0",
     "nedb": "^1.8.0",
-    "node-sass": "^4.9.1"
+    "node-sass": "^4.9.3"
   },
   "devDependencies": {
     "@types/clean-css": "^3.4.30",
     "@types/fs-extra": "^5.0.4",
-    "@types/handlebars": "^4.0.38",
+    "@types/handlebars": "^4.0.39",
     "@types/html-minifier": "^3.5.2",
-    "@types/lodash": "^4.14.109",
+    "@types/lodash": "^4.14.116",
     "@types/mkpath": "^0.1.29",
     "@types/nedb": "^1.8.5",
-    "@types/node": "^10.3.2",
+    "@types/node": "^10.9.4",
     "@types/node-sass": "^3.10.32"
   }
 }

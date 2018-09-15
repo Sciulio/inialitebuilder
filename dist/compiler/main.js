@@ -68,7 +68,7 @@ function fnCtxMustBeCompiled(fn) {
     if (fn.stats.needsBuild) {
         return true;
     }
-    //TODO: check all dependancies (lang, json, ... etc)
+    //TODO: check all dependencies (lang, json, ... etc)
     return fn.relations && fn.relations
         .some(relation => fnCtxMustBeCompiled(relation.fn));
 }
