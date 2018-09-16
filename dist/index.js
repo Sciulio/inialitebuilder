@@ -74,7 +74,7 @@ function _build(siteConfig) {
         //CompilerManager.instance.building(siteName);
         yield audit_1.initDb(siteConfig.siteName);
         const targetPath = path_1.default.join(config.target.root, siteConfig.siteName);
-        const outputPath = path_1.default.join(config.output.root, siteConfig.siteName);
+        const outputPath = path_1.default.join(config.output.root, siteConfig.siteName, "www");
         debug_1._log(siteConfig.siteName, targetPath, outputPath);
         debug_1._logSeparator();
         const sourceFileSet = yield io_1.getFilesRecusively(targetPath);

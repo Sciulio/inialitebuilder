@@ -20,7 +20,7 @@ const dbs = {};
 function initDb(siteName) {
     return __awaiter(this, void 0, void 0, function* () {
         const db = new nedb_1.default({
-            filename: path_1.default.join(config.output.root, siteName + ".db")
+            filename: path_1.default.join(config.output.root, siteName, "audit.nedb")
         });
         dbs[siteName] = {
             db,

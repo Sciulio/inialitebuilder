@@ -81,7 +81,7 @@ async function _build(siteConfig: tSiteConfig) {
   await initDb(siteConfig.siteName);
 
   const targetPath = path.join(config.target.root, siteConfig.siteName);
-  const outputPath = path.join(config.output.root, siteConfig.siteName);
+  const outputPath = path.join(config.output.root, siteConfig.siteName, "www");
 
   _log(siteConfig.siteName, targetPath, outputPath);
   _logSeparator();

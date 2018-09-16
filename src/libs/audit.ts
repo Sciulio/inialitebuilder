@@ -50,7 +50,7 @@ const dbs: {[key: string]: {
 
 export async function initDb(siteName: string) {
   const db = new Datastore({
-    filename: path.join(config.output.root, siteName + ".db")
+    filename: path.join(config.output.root, siteName, "audit.nedb")
   });
   
   dbs[siteName] = {
